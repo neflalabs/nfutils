@@ -11,7 +11,7 @@ NF_DIR="$HOME/bin"
 NF_PATH="$NF_DIR/nfutils"
 BASHRC="$HOME/.bashrc"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v0.0.4"
+NF_VERSION="v0.0.5"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -190,6 +190,7 @@ pick_latest_version() {
   local latest="" line key
   while IFS= read -r line; do
     [ -n "$line" ] || continue
+    [[ "$line" =~ ^v[0-9]+(\.[0-9]+){0,2}$ ]] || continue
     key=$(version_key "$line") || continue
     if [ -z "$latest" ] || version_newer "$line" "$latest"; then
       latest="$line"
