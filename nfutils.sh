@@ -11,7 +11,7 @@ NF_DIR="$HOME/bin"
 NF_PATH="$NF_DIR/nfutils"
 BASHRC="$HOME/.bashrc"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v1.3.0"
+NF_VERSION="v0.0.2"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -35,6 +35,35 @@ strip_line_from_file() {
   else
     rm -f "$tmp"
     : > "$file"
+  fi
+}
+
+version_key() {
+  local raw="${1#v}"
+  IFS='.' read -r major minor patch <<<"$raw"
+  major=${major:-0}
+  minor=${minor:-0}
+  patch=${patch:-0}
+  printf "%04d%04d%04d" "$major" "$minor" "$patch"
+}
+
+version_newer() {
+  [[ "$(version_key "$1")" > "$(version_key "$2")" ]]
+}
+
+pick_latest_version() {
+  local latest="" line key
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    key=$(version_key "$line") || continue
+    if [ -z "$latest" ] || version_newer "$line" "$latest"; then
+      latest="$line"
+    fi
+  done
+  if [ -n "$latest" ]; then
+    echo "$latest"
+  else
+    echo "v0.0.1"
   fi
 }
 
@@ -70,7 +99,7 @@ uninstall_nfutils() {
 update_nfutils() {
   echo ""
   bold "🔍 Checking for updates..."
-  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep 'NF_VERSION=' | tail -n1 | cut -d'"' -f2)
+  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep 'NF_VERSION=' | cut -d'"' -f2 | pick_latest_version)
 
   if [ -z "$LATEST_VERSION" ]; then
     echo "$(red "❌ Failed to check version (network or GitHub issue).")"
@@ -143,6 +172,35 @@ strip_line_from_file() {
   fi
 }
 
+version_key() {
+  local raw="${1#v}"
+  IFS='.' read -r major minor patch <<<"$raw"
+  major=${major:-0}
+  minor=${minor:-0}
+  patch=${patch:-0}
+  printf "%04d%04d%04d" "$major" "$minor" "$patch"
+}
+
+version_newer() {
+  [[ "$(version_key "$1")" > "$(version_key "$2")" ]]
+}
+
+pick_latest_version() {
+  local latest="" line key
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    key=$(version_key "$line") || continue
+    if [ -z "$latest" ] || version_newer "$line" "$latest"; then
+      latest="$line"
+    fi
+  done
+  if [ -n "$latest" ]; then
+    echo "$latest"
+  else
+    echo "v0.0.1"
+  fi
+}
+
 show_help() {
   echo ""
   bold "NFUTILS - Laravel & Docker Developer Helper ($NF_VERSION)"
@@ -158,6 +216,7 @@ show_help() {
   echo "  docker destroy             - Stop & remove all containers"
   echo "  docker nuke                - Destroy ALL containers, images, volumes, networks"
   echo "  destroyer                  - ⚠️ Delete all files in current dir"
+  echo "  sail <args>                - Proxy to ./vendor/bin/sail"
   echo "  update                     - Update nfutils from GitHub"
   echo "  uninstall                  - Remove nfutils from your system"
   echo "  --version                  - Show nfutils version"
@@ -193,6 +252,22 @@ laravel_sail() {
     laravelsail/php84-composer:latest php artisan sail:install "$@"
   echo "$(green "✅ Laravel Sail installed successfully!")"
   echo "Now you can run: ./vendor/bin/sail up"
+}
+
+sail_cmd() {
+  if [ ! -f "./vendor/bin/sail" ]; then
+    echo "$(red "❌ Laravel Sail is not installed (vendor/bin/sail missing).")"
+    echo "Run: nfutils laravel sail"
+    exit 1
+  fi
+  if [ ! -x "./vendor/bin/sail" ]; then
+    chmod +x "./vendor/bin/sail"
+  fi
+  if [ $# -eq 0 ]; then
+    ./vendor/bin/sail
+  else
+    ./vendor/bin/sail "$@"
+  fi
 }
 
 # --- Composer in Docker ---
@@ -242,7 +317,7 @@ nfutils_uninstall() {
 
 nfutils_update() {
   echo "$(yellow "🔍 Checking for updates...")"
-  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep 'NF_VERSION=' | tail -n1 | cut -d'"' -f2)
+  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep 'NF_VERSION=' | cut -d'"' -f2 | pick_latest_version)
   if [ -z "$LATEST_VERSION" ]; then
     echo "$(red "❌ Unable to check version.")"
     exit 1
@@ -264,6 +339,7 @@ case "$1" in
   destroyer) destroyer;;
   uninstall) nfutils_uninstall;;
   update) nfutils_update;;
+  sail) shift; sail_cmd "$@";;
   --version|-v) echo "nfutils $NF_VERSION";;
   help|"") show_help;;
   *) echo "$(red "Unknown command: $1")"; show_help;;
@@ -304,7 +380,7 @@ _nfutils_completions() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
 
   # subcommands
-  opts="help --version update uninstall destroyer composer docker laravel"
+  opts="help --version update uninstall destroyer composer docker laravel sail"
 
   case "${prev}" in
     docker)
@@ -313,6 +389,10 @@ _nfutils_completions() {
       ;;
     laravel)
       COMPREPLY=( $(compgen -W "init sail" -- ${cur}) )
+      return 0
+      ;;
+    sail)
+      COMPREPLY=( $(compgen -W "up down restart stop build ps" -- ${cur}) )
       return 0
       ;;
     *)

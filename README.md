@@ -4,7 +4,7 @@ Perangkat utilitas berbasis Bash untuk membantu workflow pengembangan Laravel da
 
 ### Fitur Utama
 - Instalasi skrip `nfutils` ke `$HOME/bin` lengkap dengan auto-completion Bash.
-- Manajemen proyek Laravel: inisialisasi proyek baru dan setup Laravel Sail.
+- Manajemen proyek Laravel: inisialisasi proyek baru, setup Laravel Sail, dan shortcut perintah Sail.
 - Shortcut perintah Composer di dalam container.
 - Kumpulan perintah Docker (kill, rm, destroy, nuke) serta pembersihan direktori.
 - Dukungan pembaruan dan pencopotan `nfutils` langsung dari CLI.
@@ -27,13 +27,15 @@ Contoh perintah lainnya:
 ```bash
 nfutils laravel init nama-proyek
 nfutils laravel sail
+nfutils sail up
+nfutils sail down
 nfutils composer install
 nfutils docker nuke
 nfutils destroyer
 ```
 
 ### Pembaruan
-`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`.
+`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi mengikuti pola semver dengan awalan `v`, dimulai dari `v0.0.1`.
 
 ### Kontribusi
 Silakan ajukan issue atau pull request di repositori GitHub untuk ide peningkatan atau laporan bug.
