@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-10-27T03:24:49-gf84d16a"
+NF_VERSION="v2025-10-27T03:43:16-gdf66e7e"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -363,7 +363,11 @@ laravel_sail() {
     -w /var/www/html \
     laravelsail/php84-composer:latest php artisan sail:install "$@"
   echo "$(green "✅ Laravel Sail installed successfully!")"
-  echo "Now you can run: ./vendor/bin/sail up"
+  local alias_line="alias sail='sh \$([ -f sail ] && echo sail || echo vendor/bin/sail)'"
+  append_unique_line "$BASHRC" "$alias_line"
+  append_unique_line "$ZSHRC" "$alias_line"
+  echo "$(green "✅ Alias 'sail' ditambahkan ke shell profile.")"
+  echo "Now you can run: sail up"
 }
 
 sail_cmd() {
