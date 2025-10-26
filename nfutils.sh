@@ -11,7 +11,7 @@ NF_DIR="$HOME/bin"
 NF_PATH="$NF_DIR/nfutils"
 BASHRC="$HOME/.bashrc"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v1.3.0"
+NF_VERSION="v0.0.1"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -237,3 +237,48 @@ green "✅ nfutils $NF_VERSION installed successfully!"
 echo "👉 Try: nfutils --version"
 echo "👉 Or run: nfutils update"
 echo ""
+
+# ------------------------------------------------------------
+# Enable bash auto-completion for nfutils
+# ------------------------------------------------------------
+NF_COMPLETION="$HOME/.bash_completion.d/nfutils"
+
+mkdir -p "$(dirname "$NF_COMPLETION")"
+
+cat > "$NF_COMPLETION" <<'EOC'
+# nfutils bash completion
+_nfutils_completions() {
+  local cur prev opts
+  COMPREPLY=()
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+  # subcommands
+  opts="help --version update uninstall destroyer composer docker laravel"
+
+  case "${prev}" in
+    docker)
+      COMPREPLY=( $(compgen -W "kill rm destroy nuke" -- ${cur}) )
+      return 0
+      ;;
+    laravel)
+      COMPREPLY=( $(compgen -W "init sail" -- ${cur}) )
+      return 0
+      ;;
+    *)
+      COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+      return 0
+      ;;
+  esac
+}
+complete -F _nfutils_completions nfutils
+EOC
+
+# aktifkan langsung
+if [ -f "$NF_COMPLETION" ]; then
+  # pastikan di-load otomatis
+  if ! grep -q "$NF_COMPLETION" "$BASHRC"; then
+    echo "source $NF_COMPLETION" >> "$BASHRC"
+  fi
+  source "$NF_COMPLETION"
+fi
