@@ -1,15 +1,16 @@
 ## nfutils
 
-Script utilitas berbasis Shell untuk membantu workflow pengembangan Laravel + Docker dengan codespace space sebai lingkungan pengembangannya.
+Script utilitas berbasis Shell bukan ~~Pertaminya~~ untuk membantu workflow pengembangan Laravel menggunakan Docker terkhusus menggunakan [CodeSpace](https://github.com/codespaces) sebagai lingkungan pengembangannya.
 
 ### Fitur Utama
-- Instalasi skrip `nfutils` ke `$HOME/bin` lengkap dengan auto-completion [Tab] key.
+- Instalasi skrip `nfutils` ke `$HOME/bin` dengan auto-completion [Tab] key.
 - Manajemen proyek Laravel: inisialisasi proyek baru, setup Laravel Sail, dan shortcut perintah Sail.
 - Shortcut perintah Composer di dalam container.
 - Kumpulan perintah Docker (kill, rm, destroy, nuke) serta pembersihan direktori.
 - Dukungan pembaruan dan pencopotan `nfutils` langsung dari CLI.
 
 ### Cara Instalasi
+Download file nfutils.sh lalu...
 ```bash
 bash nfutils.sh
 ```
@@ -30,17 +31,18 @@ nfutils uninstall      # Menghapus nfutils dari sistem
 
 Contoh perintah lainnya:
 ```bash
-nfutils laravel create nama-proyek # Bisa menggunakan . untuk direktori yang diinginkan
-nfutils laravel init               
-nfutils sail up
-nfutils sail down
-nfutils composer install
-nfutils docker nuke
-nfutils destroyer
+nfutils laravel create nama-proyek    # membuat didalam direktory
+nfutils laravel create .              # membuat di current dir
+nfutils laravel init                  # inisialisasi laravel sail
+nfutils sail up                       # sail up / docker compose up
+nfutils sail down                     # sama aja, buat down
+nfutils composer install              # composer images
+nfutils docker nuke                   # bahaya ini semua container, images, volume, network hilang.
+nfutils destroyer                     # ini juga bahaya current dir bisa kosong!
 ```
 
 ### Pembaruan
-`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi mengikuti pola semver dengan awalan `v`, dimulai dari `v0.0.1`.
+`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi mengikuti pola semver dengan awalan `v`, contoh `v0.0.1`.
 
 ### Kontribusi
 Silakan ajukan issue atau pull request di repositori GitHub untuk ide peningkatan atau laporan bug.
