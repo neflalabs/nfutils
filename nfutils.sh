@@ -10,6 +10,7 @@ set -e
 NF_DIR="$HOME/bin"
 NF_PATH="$NF_DIR/nfutils"
 BASHRC="$HOME/.bashrc"
+ZSHRC="$HOME/.zshrc"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 NF_VERSION="v0.0.7"
 
@@ -18,10 +19,21 @@ green() { echo -e "\033[32m$1\033[0m"; }
 yellow() { echo -e "\033[33m$1\033[0m"; }
 red() { echo -e "\033[31m$1\033[0m"; }
 
-ensure_bashrc() {
-  if [ ! -f "$BASHRC" ]; then
-    touch "$BASHRC"
+ensure_rc_file() {
+  local file="$1"
+  if [ ! -f "$file" ]; then
+    touch "$file"
   fi
+}
+
+ensure_bashrc() { ensure_rc_file "$BASHRC"; }
+ensure_zshrc() { ensure_rc_file "$ZSHRC"; }
+
+append_unique_line() {
+  local file="$1"
+  local line="$2"
+  ensure_rc_file "$file"
+  grep -Fxq "$line" "$file" || printf '%s\n' "$line" >> "$file"
 }
 
 strip_line_from_file() {
@@ -36,6 +48,22 @@ strip_line_from_file() {
     rm -f "$tmp"
     : > "$file"
   fi
+}
+
+strip_block_between_markers() {
+  local file="$1"
+  local start="$2"
+  local end="$3"
+  [ -f "$file" ] || return 0
+  local tmp
+  tmp=$(mktemp)
+  awk -v start="$start" -v end="$end" '
+    $0 == start {skip=1; next}
+    $0 == end {skip=0; next}
+    skip {next}
+    {print}
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
 }
 
 version_key() {
@@ -88,6 +116,15 @@ uninstall_nfutils() {
     strip_line_from_file "$BASHRC" "HOME/bin"
     echo "$(green "✔ Cleaned PATH entry from .bashrc")"
   fi
+  if [ -f "$BASHRC" ]; then
+    strip_line_from_file "$BASHRC" ".bash_completion.d/nfutils"
+  fi
+
+  if [ -f "$ZSHRC" ] && grep -q 'HOME/bin' "$ZSHRC"; then
+    strip_line_from_file "$ZSHRC" "HOME/bin"
+    echo "$(green "✔ Cleaned PATH entry from .zshrc")"
+  fi
+  strip_block_between_markers "$ZSHRC" "# nfutils zsh completion start" "# nfutils zsh completion end"
 
   echo "$(green "✅ nfutils uninstalled successfully!")"
   echo "You can reload your shell with: source ~/.bashrc"
@@ -150,16 +187,28 @@ NF_VERSION="__NF_VERSION__"
 NF_REPO_URL="__NF_REPO_URL__"
 
 BASHRC="$HOME/.bashrc"
+ZSHRC="$HOME/.zshrc"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
 red() { echo -e "\033[31m$1\033[0m"; }
 yellow() { echo -e "\033[33m$1\033[0m"; }
 
-ensure_bashrc() {
-  if [ ! -f "$BASHRC" ]; then
-    touch "$BASHRC"
+ensure_rc_file() {
+  local file="$1"
+  if [ ! -f "$file" ]; then
+    touch "$file"
   fi
+}
+
+ensure_bashrc() { ensure_rc_file "$BASHRC"; }
+ensure_zshrc() { ensure_rc_file "$ZSHRC"; }
+
+append_unique_line() {
+  local file="$1"
+  local line="$2"
+  ensure_rc_file "$file"
+  grep -Fxq "$line" "$file" || printf '%s\n' "$line" >> "$file"
 }
 
 strip_line_from_file() {
@@ -174,6 +223,22 @@ strip_line_from_file() {
     rm -f "$tmp"
     : > "$file"
   fi
+}
+
+strip_block_between_markers() {
+  local file="$1"
+  local start="$2"
+  local end="$3"
+  [ -f "$file" ] || return 0
+  local tmp
+  tmp=$(mktemp)
+  awk -v start="$start" -v end="$end" '
+    $0 == start {skip=1; next}
+    $0 == end {skip=0; next}
+    skip {next}
+    {print}
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
 }
 
 version_key() {
@@ -316,6 +381,11 @@ nfutils_uninstall() {
   rm -f "$HOME/bin/nfutils"
   if [ -f "$BASHRC" ]; then
     strip_line_from_file "$BASHRC" "HOME/bin"
+    strip_line_from_file "$BASHRC" ".bash_completion.d/nfutils"
+  fi
+  if [ -f "$ZSHRC" ]; then
+    strip_line_from_file "$ZSHRC" "HOME/bin"
+    strip_block_between_markers "$ZSHRC" "# nfutils zsh completion start" "# nfutils zsh completion end"
   fi
   echo "$(green "✅ nfutils uninstalled.")"
 }
@@ -361,9 +431,10 @@ mv "$tmp_file" "$NF_PATH"
 chmod +x "$NF_PATH"
 
 ensure_bashrc
-
-if ! grep -q "$HOME/bin" "$BASHRC"; then
-  echo 'export PATH="$HOME/bin:$PATH"' >> "$BASHRC"
+append_unique_line "$BASHRC" 'export PATH="$HOME/bin:$PATH"'
+if [ -n "$ZSHRC" ]; then
+  ensure_zshrc
+  append_unique_line "$ZSHRC" 'export PATH="$HOME/bin:$PATH"'
 fi
 
 echo ""
@@ -416,8 +487,19 @@ EOC
 if [ -f "$NF_COMPLETION" ]; then
   # pastikan di-load otomatis
   ensure_bashrc
-  if ! grep -q "$NF_COMPLETION" "$BASHRC"; then
-    echo "source $NF_COMPLETION" >> "$BASHRC"
+  append_unique_line "$BASHRC" "source $NF_COMPLETION"
+  if [ -n "$ZSHRC" ]; then
+    ensure_zshrc
+    if ! grep -Fq "# nfutils zsh completion start" "$ZSHRC"; then
+      cat >> "$ZSHRC" <<'EOZ'
+# nfutils zsh completion start
+if [ -f "$HOME/.bash_completion.d/nfutils" ]; then
+  autoload -U +X bashcompinit && bashcompinit
+  source "$HOME/.bash_completion.d/nfutils"
+fi
+# nfutils zsh completion end
+EOZ
+    fi
   fi
   source "$NF_COMPLETION"
 fi
