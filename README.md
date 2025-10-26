@@ -34,6 +34,8 @@ Contoh perintah lainnya:
 nfutils lara-create nama-proyek       # membuat didalam direktori
 nfutils lara-create .                 # membuat di current dir
 nfutils lara-init                     # inisialisasi laravel sail
+nfutils lara-init -p 8000             # inisialisasi sail dan set APP_PORT
+nfutils lara-init -p 8000             # inisialisasi sail + set APP_PORT=8000
 nfutils sail up                       # sail up / docker compose up
 nfutils sail down                     # sama aja, buat down
 nfutils composer install              # composer images
@@ -50,6 +52,8 @@ Installer otomatis menambahkan skrip komplesi:
 - Bash: `~/.bash_completion.d/nfutils`.
 - Zsh: `~/.zsh/completions/_nfutils` (sertakan `fpath` dan `compinit` di `.zshrc`).
 Reload shell (atau `source` file rc) setelah instal supaya saran perintah aktif.
+
+Saat menjalankan `nfutils lara-init`, alias `sail` otomatis ditambahkan ke profil shell sehingga kamu bisa menjalankan `sail up` langsung.
 
 ### Kontribusi
 Silakan ajukan issue atau pull request di repositori GitHub untuk ide peningkatan atau laporan bug.

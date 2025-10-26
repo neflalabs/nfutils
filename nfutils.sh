@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-10-27T03:57:51-g23d7494"
+NF_VERSION="v2025-10-27T03:58:19-g31c347c"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -318,7 +318,7 @@ show_help() {
   echo ""
   echo "Commands:"
   echo "  lara-create <project>      - Create new Laravel project"
-  echo "  lara-init                  - Initialize Sail in existing project"
+  echo "  lara-init [-p PORT]        - Initialize Sail in existing project"
   echo "  composer <args>            - Run Composer in Docker"
   echo "  dock-kill                  - Stop all running containers"
   echo "  dock-rm                    - Remove all containers"
@@ -345,6 +345,44 @@ laravel_init() {
 }
 
 laravel_sail() {
+  local port=""
+  local sail_args=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -p|--port)
+        if [[ -n "${2:-}" && "$2" =~ ^[0-9]+$ ]]; then
+          port="$2"
+          shift 2
+          continue
+        else
+          echo "$(red "❌ Invalid port value for -p/--port.")"
+          exit 1
+        fi
+        ;;
+      --port=*)
+        local value="${1#--port=}"
+        if [[ "$value" =~ ^[0-9]+$ ]]; then
+          port="$value"
+          shift
+          continue
+        else
+          echo "$(red "❌ Invalid port value for --port.")"
+          exit 1
+        fi
+        ;;
+      --)
+        shift
+        sail_args+=("$@")
+        break
+        ;;
+      *)
+        sail_args+=("$1")
+        shift
+        ;;
+    esac
+  done
+  set -- "${sail_args[@]}"
+
   if [ ! -f "artisan" ]; then
     echo "$(red "❌ This is not a Laravel project (artisan not found).")"
     exit 1
@@ -367,6 +405,38 @@ laravel_sail() {
   append_unique_line "$BASHRC" "$alias_line"
   append_unique_line "$ZSHRC" "$alias_line"
   echo "$(green "✅ Alias 'sail' ditambahkan ke shell profile.")"
+  if [ -n "$port" ] && [ -f ".env" ]; then
+    python3 - "$port" <<'PY'
+import sys
+from pathlib import Path
+
+port = sys.argv[1]
+env_path = Path(".env")
+if not env_path.exists():
+    raise SystemExit(0)
+lines = env_path.read_text().splitlines()
+out = []
+inserted = False
+for line in lines:
+    if line.startswith("APP_PORT="):
+        if not inserted:
+            out.append(f"APP_PORT={port}")
+            inserted = True
+        else:
+            continue
+    else:
+        out.append(line)
+    if line.startswith("APP_URL=") and not inserted:
+        out.append(f"APP_PORT={port}")
+        inserted = True
+if not inserted:
+    out.append(f"APP_PORT={port}")
+env_path.write_text("\n".join(out) + "\n")
+PY
+    echo "$(green "✅ APP_PORT=$port ditulis ke .env")"
+  elif [ -n "$port" ]; then
+    echo "$(yellow "ℹ .env tidak ditemukan, APP_PORT tidak diubah.")"
+  fi
   echo "Now you can run: sail up"
 }
 
