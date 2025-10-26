@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =========================================================
-# NFUTILS INSTALLER - Auto setup Dev Utilities CodeSpace
+# NFUTILS INSTALLER / UNINSTALLER - Auto setup Dev Utilities CodeSpace
 # Author: NeflaLabs
 # Email:  neflaprojekt@gmail.com
 # =========================================================
@@ -15,6 +15,28 @@ bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
 yellow() { echo -e "\033[33m$1\033[0m"; }
 red() { echo -e "\033[31m$1\033[0m"; }
+
+uninstall_nfutils() {
+  echo ""
+  red "⚠️  This will remove nfutils from your system!"
+  read -p "Are you sure? (y/N): " ans
+  [[ "$ans" == "y" ]] || { echo "Aborted."; exit 0; }
+
+  rm -f "$NF_PATH"
+  # hapus PATH export dari bashrc (jika ada)
+  sed -i '/export PATH=.*\$HOME\/bin/d' "$BASHRC" || true
+
+  echo ""
+  green "✅ nfutils uninstalled successfully!"
+  echo "Restart your terminal or run: source ~/.bashrc"
+  echo ""
+  exit 0
+}
+
+# handle uninstall mode saat dijalankan langsung via script
+if [ "$1" = "uninstall" ]; then
+  uninstall_nfutils
+fi
 
 echo ""
 bold "🧰 Installing nfutils..."
@@ -50,8 +72,9 @@ show_help() {
   echo "  $(green 'docker kill')              - Stop all running containers"
   echo "  $(green 'docker rm')                - Remove all containers"
   echo "  $(green 'docker destroy')           - Stop & remove all containers"
-  echo "  $(green 'docker nuke')              - Destroy ALL (containers, images, volumes, networks)"
+  echo "  $(green 'docker nuke')              - Destroy ALL containers, images, volumes, networks"
   echo "  $(red   'destroyer')                - ⚠️  Delete all files in current dir (safe version)"
+  echo "  $(yellow 'uninstall')               - Remove nfutils from your system"
   echo ""
 }
 
@@ -78,18 +101,9 @@ composer_cmd() {
     composer "$@"
 }
 
-docker_kill() {
-  docker ps -q | xargs -r docker stop
-}
-
-docker_rm() {
-  docker ps -a -q | xargs -r docker rm
-}
-
-docker_destroy() {
-  docker ps -a -q | xargs -r docker stop
-  docker ps -a -q | xargs -r docker rm
-}
+docker_kill() { docker ps -q | xargs -r docker stop; }
+docker_rm() { docker ps -a -q | xargs -r docker rm; }
+docker_destroy() { docker ps -a -q | xargs -r docker stop && docker ps -a -q | xargs -r docker rm; }
 
 docker_nuke() {
   echo "$(red "⚠️  This will delete ALL containers, images, volumes, and networks!")"
@@ -110,34 +124,23 @@ destroyer() {
   echo "$(green "✅ Directory cleared.")"
 }
 
+nfutils_uninstall() {
+  echo "$(red "⚠️  This will remove nfutils from your system!")"
+  read -p "Are you sure? (y/N): " ans
+  [[ "$ans" == "y" ]] || { echo "Aborted."; exit 0; }
+  rm -f "$HOME/bin/nfutils"
+  sed -i '/export PATH=.*\$HOME\/bin/d' "$HOME/.bashrc" || true
+  echo "$(green "✅ nfutils uninstalled.")"
+}
+
 case "$1" in
-  laravel)
-    shift
-    case "$1" in
-      init) shift; laravel_init "$@";;
-      sail) shift; laravel_sail "$@";;
-      *) show_help;;
-    esac
-    ;;
-  composer)
-    shift; composer_cmd "$@";;
-  docker)
-    shift
-    case "$1" in
-      kill) docker_kill;;
-      rm) docker_rm;;
-      destroy) docker_destroy;;
-      nuke) docker_nuke;;
-      *) show_help;;
-    esac
-    ;;
-  destroyer)
-    destroyer;;
-  help|"")
-    show_help;;
-  *)
-    echo "$(red "Unknown command: $1")"
-    show_help;;
+  laravel) shift; case "$1" in init) shift; laravel_init "$@";; sail) shift; laravel_sail "$@";; *) show_help;; esac;;
+  composer) shift; composer_cmd "$@";;
+  docker) shift; case "$1" in kill) docker_kill;; rm) docker_rm;; destroy) docker_destroy;; nuke) docker_nuke;; *) show_help;; esac;;
+  destroyer) destroyer;;
+  uninstall) nfutils_uninstall;;
+  help|"") show_help;;
+  *) echo "$(red "Unknown command: $1")"; show_help;;
 esac
 EOF
 
@@ -148,11 +151,6 @@ if ! echo "$PATH" | grep -q "$HOME/bin"; then
   echo 'export PATH="$HOME/bin:$PATH"' >> "$BASHRC"
 fi
 
-# Reload shell
-if [ -n "$BASH_VERSION" ]; then
-  source "$BASHRC"
-fi
-
 echo ""
 green "✅ nfutils installed successfully!"
 echo "You can now use it right away:"
@@ -161,4 +159,5 @@ bold "Examples:"
 echo "  nfutils laravel init myapp"
 echo "  nfutils composer install"
 echo "  nfutils docker nuke"
+echo "  nfutils uninstall"
 echo ""
