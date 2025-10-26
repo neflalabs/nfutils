@@ -11,7 +11,7 @@ NF_DIR="$HOME/bin"
 NF_PATH="$NF_DIR/nfutils"
 BASHRC="$HOME/.bashrc"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v0.0.5"
+NF_VERSION="v0.0.6"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -107,16 +107,19 @@ update_nfutils() {
     exit 1
   fi
 
-  if [ "$LATEST_VERSION" != "$NF_VERSION" ]; then
+  if version_newer "$LATEST_VERSION" "$NF_VERSION"; then
     echo "$(yellow "📦 New version available:") $LATEST_VERSION (current: $NF_VERSION)"
     read -p "Update now? (y/N): " ans
     if [ "$ans" = "y" ]; then
       echo "$(yellow "⬇️ Downloading and installing new version...")"
       curl -s "$NF_REPO_URL" | bash
       echo "$(green "✅ nfutils updated to $LATEST_VERSION")"
+      exit 0
     else
       echo "Aborted."
     fi
+  elif version_newer "$NF_VERSION" "$LATEST_VERSION"; then
+    echo "$(green "✅ You are ahead (local $NF_VERSION, remote $LATEST_VERSION)")"
   else
     echo "$(green "✅ You are already using the latest version ($NF_VERSION)")"
   fi
@@ -324,10 +327,13 @@ nfutils_update() {
     echo "$(red "❌ Unable to check version.")"
     exit 1
   fi
-  if [ "$LATEST_VERSION" != "$NF_VERSION" ]; then
+  if version_newer "$LATEST_VERSION" "$NF_VERSION"; then
     echo "$(yellow "📦 New version available:") $LATEST_VERSION"
     curl -s "$NF_REPO_URL" | bash
     echo "$(green "✅ Updated to $LATEST_VERSION")"
+    exit 0
+  elif version_newer "$NF_VERSION" "$LATEST_VERSION"; then
+    echo "$(green "✅ Anda sudah di depan (local $NF_VERSION, remote $LATEST_VERSION)")"
   else
     echo "$(green "✅ Already up-to-date ($NF_VERSION)")"
   fi
