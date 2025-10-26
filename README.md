@@ -1,6 +1,6 @@
 ## nfutils
 
-Script utilitas berbasis Shell bukan ~~Pertaminya~~ untuk membantu workflow pengembangan Laravel menggunakan Docker terkhusus menggunakan [CodeSpace](https://github.com/codespaces) sebagai lingkungan pengembangannya.
+Script utilitas berbasis Shell bukan ~~Pertaminya~~ untuk membantu workflow pengembangan Laravel menggunakan Docker yang juga mengandalkan [CodeSpace](https://github.com/codespaces) sebagai lingkungan pengembangannya.
 
 ### Fitur Utama
 - Instalasi skrip `nfutils` ke `$HOME/bin` dengan auto-completion [Tab] key.
@@ -41,8 +41,8 @@ nfutils docker nuke                   # bahaya ini semua container, images, volu
 nfutils destroyer                     # ini juga bahaya current dir bisa kosong!
 ```
 
-### Pembaruan
-`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi mengikuti pola semver dengan awalan `v`, contoh `v0.0.1`.
+### Pembaruan & Status
+`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi mengikuti pola semver dengan awalan `v`, contoh `v0.0.1`. script ini masih pengembangan, masih belum tau kedepannya bakal seperti apa.
 
 ### Kontribusi
 Silakan ajukan issue atau pull request di repositori GitHub untuk ide peningkatan atau laporan bug.
