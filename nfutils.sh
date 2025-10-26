@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # =========================================================
-# NFUTILS INSTALLER / UNINSTALLER - Auto setup Dev Utilities CodeSpace
+# NFUTILS INSTALLER / UNINSTALLER - Auto setup Dev Utilities
 # Author: NeflaLabs
-# Email:  neflaprojekt@gmail.com
 # =========================================================
 
 set -e
@@ -16,47 +15,52 @@ green() { echo -e "\033[32m$1\033[0m"; }
 yellow() { echo -e "\033[33m$1\033[0m"; }
 red() { echo -e "\033[31m$1\033[0m"; }
 
+# ---------------------------------------------
+# UNINSTALL FUNCTION
+# ---------------------------------------------
 uninstall_nfutils() {
   echo ""
-  red "⚠️  This will remove nfutils from your system!"
-  read -p "Are you sure? (y/N): " ans
+  red "⚠️  Uninstalling nfutils from your system..."
+  read -p "Are you sure you want to continue? (y/N): " ans
   [[ "$ans" == "y" ]] || { echo "Aborted."; exit 0; }
 
-  rm -f "$NF_PATH"
-  # hapus PATH export dari bashrc (jika ada)
-  sed -i '/export PATH=.*\$HOME\/bin/d' "$BASHRC" || true
+  if [ -f "$NF_PATH" ]; then
+    rm -f "$NF_PATH"
+    echo "$(green "✔ Removed:") $NF_PATH"
+  else
+    echo "$(yellow "ℹ nfutils not found in:") $NF_PATH"
+  fi
 
-  echo ""
-  green "✅ nfutils uninstalled successfully!"
-  echo "Restart your terminal or run: source ~/.bashrc"
-  echo ""
+  # Remove PATH line safely (match any export line containing $HOME/bin)
+  if grep -q 'HOME/bin' "$BASHRC"; then
+    sed -i '/HOME\/bin/d' "$BASHRC"
+    echo "$(green "✔ Cleaned PATH entry from .bashrc")"
+  fi
+
+  echo "$(green "✅ nfutils uninstalled successfully!")"
+  echo "You can reload your shell with: source ~/.bashrc"
   exit 0
 }
 
-# handle uninstall mode saat dijalankan langsung via script
-if [ "$1" = "uninstall" ]; then
+# Run uninstall immediately if user called `bash nfutils.sh uninstall`
+if [[ "$1" == "uninstall" ]]; then
   uninstall_nfutils
 fi
 
+# ---------------------------------------------
+# INSTALL FUNCTION
+# ---------------------------------------------
 echo ""
 bold "🧰 Installing nfutils..."
-echo ""
-
-# Create bin dir if not exists
 mkdir -p "$NF_DIR"
 
-# Write nfutils main script
+# Write main executable
 cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
-# ===========================================
-# NFUTILS - Developer Utility Toolkit
-# ===========================================
-
 set -e
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
-yellow() { echo -e "\033[33m$1\033[0m"; }
 red() { echo -e "\033[31m$1\033[0m"; }
 
 show_help() {
@@ -66,15 +70,15 @@ show_help() {
   echo "Usage: nfutils <command> [options]"
   echo ""
   echo "Commands:"
-  echo "  $(green 'laravel init <project>')    - Create new Laravel project"
-  echo "  $(green 'laravel sail')             - Initialize Sail in existing project"
-  echo "  $(green 'composer <args>')          - Run Composer in Docker"
-  echo "  $(green 'docker kill')              - Stop all running containers"
-  echo "  $(green 'docker rm')                - Remove all containers"
-  echo "  $(green 'docker destroy')           - Stop & remove all containers"
-  echo "  $(green 'docker nuke')              - Destroy ALL containers, images, volumes, networks"
-  echo "  $(red   'destroyer')                - ⚠️  Delete all files in current dir (safe version)"
-  echo "  $(yellow 'uninstall')               - Remove nfutils from your system"
+  echo "  laravel init <project>     - Create new Laravel project"
+  echo "  laravel sail               - Initialize Sail in existing project"
+  echo "  composer <args>            - Run Composer in Docker"
+  echo "  docker kill                - Stop all running containers"
+  echo "  docker rm                  - Remove all containers"
+  echo "  docker destroy             - Stop & remove all containers"
+  echo "  docker nuke                - Destroy ALL containers, images, volumes, networks"
+  echo "  destroyer                  - ⚠️ Delete all files in current dir"
+  echo "  uninstall                  - Remove nfutils from your system"
   echo ""
 }
 
@@ -129,7 +133,7 @@ nfutils_uninstall() {
   read -p "Are you sure? (y/N): " ans
   [[ "$ans" == "y" ]] || { echo "Aborted."; exit 0; }
   rm -f "$HOME/bin/nfutils"
-  sed -i '/export PATH=.*\$HOME\/bin/d' "$HOME/.bashrc" || true
+  sed -i '/HOME\/bin/d' "$HOME/.bashrc" || true
   echo "$(green "✅ nfutils uninstalled.")"
 }
 
@@ -146,8 +150,8 @@ EOF
 
 chmod +x "$NF_PATH"
 
-# Add to PATH if not already there
-if ! echo "$PATH" | grep -q "$HOME/bin"; then
+# Add PATH export if missing
+if ! grep -q "$HOME/bin" "$BASHRC"; then
   echo 'export PATH="$HOME/bin:$PATH"' >> "$BASHRC"
 fi
 
