@@ -15,6 +15,11 @@ bash nfutils.sh
 ```
 Perintah di atas akan menyalin skrip ke `$HOME/bin/nfutils`, memperbarui PATH, dan mengaktifkan auto-completion bila tersedia.
 
+Atau instal langsung dari GitHub:
+```bash
+curl -s https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh | bash
+```
+
 ### Cara Menggunakan
 ```bash
 nfutils --version      # Menampilkan versi saat ini
