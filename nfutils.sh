@@ -16,7 +16,7 @@ ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-10-27-g0d5df99"
+NF_VERSION="v2025-10-27T03:15:54-g4e969b4"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -79,9 +79,9 @@ version_key() {
     minor=${minor:-0}
     patch=${patch:-0}
     printf "0%04d%04d%04d" "$major" "$minor" "$patch"
-  elif [[ "$ver" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}-g[0-9a-fA-F]+$ ]]; then
+  elif [[ "$ver" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2})?-g[0-9a-fA-F]+$ ]]; then
     local raw="${ver#v}"
-    raw=${raw//-/}
+    raw=${raw//[-:T]/}
     printf "1%s" "$raw"
   else
     printf "9%s" "$ver"
@@ -96,7 +96,7 @@ pick_latest_version() {
   local latest="" line key
   while IFS= read -r line; do
     [ -n "$line" ] || continue
-    if [[ "$line" =~ ^v([0-9]+)(\.[0-9]+){0,2}$ || "$line" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}-g[0-9a-fA-F]+$ ]]; then
+    if [[ "$line" =~ ^v([0-9]+)(\.[0-9]+){0,2}$ || "$line" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2})?-g[0-9a-fA-F]+$ ]]; then
       :
     else
       continue
@@ -268,9 +268,9 @@ version_key() {
     minor=${minor:-0}
     patch=${patch:-0}
     printf "0%04d%04d%04d" "$major" "$minor" "$patch"
-  elif [[ "$ver" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}-g[0-9a-fA-F]+$ ]]; then
+  elif [[ "$ver" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2})?-g[0-9a-fA-F]+$ ]]; then
     local raw="${ver#v}"
-    raw=${raw//-/}
+    raw=${raw//[-:T]/}
     printf "1%s" "$raw"
   else
     printf "9%s" "$ver"
@@ -285,7 +285,7 @@ pick_latest_version() {
   local latest="" line key
   while IFS= read -r line; do
     [ -n "$line" ] || continue
-    if [[ "$line" =~ ^v([0-9]+)(\.[0-9]+){0,2}$ || "$line" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}-g[0-9a-fA-F]+$ ]]; then
+    if [[ "$line" =~ ^v([0-9]+)(\.[0-9]+){0,2}$ || "$line" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2})?-g[0-9a-fA-F]+$ ]]; then
       :
     else
       continue
