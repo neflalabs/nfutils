@@ -16,7 +16,7 @@ ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-10-27T03:15:54-g4e969b4"
+NF_VERSION="v2025-10-27T03:22:23-g840bec8"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }

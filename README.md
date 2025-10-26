@@ -42,7 +42,7 @@ nfutils destroyer                     # ini juga bahaya current dir bisa kosong!
 ```
 
 ### Pembaruan & Status
-`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi menggunakan tanggal-gitcommit contohnya `v2025-10-27-g4a9ea65`. script ini masih akan terus dikembangkan, dan masih belum tau kedepannya bakal seperti apa.
+`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi menggunakan stempel waktu + git commit contohnya `v2025-10-27T19:35:00-g4a9ea65`. script ini masih akan terus dikembangkan, dan masih belum tau kedepannya bakal seperti apa.
 
 ### Auto-completion
 Installer otomatis menambahkan skrip komplesi:
