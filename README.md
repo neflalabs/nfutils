@@ -30,8 +30,8 @@ nfutils uninstall      # Menghapus nfutils dari sistem
 
 Contoh perintah lainnya:
 ```bash
-nfutils laravel init nama-proyek    # Bisa menggunakan . untuk direktori yang diinginkan
-nfutils laravel sail                
+nfutils laravel create nama-proyek # Bisa menggunakan . untuk direktori yang diinginkan
+nfutils laravel init               
 nfutils sail up
 nfutils sail down
 nfutils composer install

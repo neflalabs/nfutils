@@ -213,8 +213,8 @@ show_help() {
   echo "Usage: nfutils <command> [options]"
   echo ""
   echo "Commands:"
-  echo "  laravel init <project>     - Create new Laravel project"
-  echo "  laravel sail               - Initialize Sail in existing project"
+  echo "  laravel create <project>   - Create new Laravel project"
+  echo "  laravel init               - Initialize Sail in existing project"
   echo "  composer <args>            - Run Composer in Docker"
   echo "  docker kill                - Stop all running containers"
   echo "  docker rm                  - Remove all containers"
@@ -262,7 +262,7 @@ laravel_sail() {
 sail_cmd() {
   if [ ! -f "./vendor/bin/sail" ]; then
     echo "$(red "❌ Laravel Sail is not installed (vendor/bin/sail missing).")"
-    echo "Run: nfutils laravel sail"
+    echo "Run: nfutils laravel init"
     exit 1
   fi
   if [ ! -x "./vendor/bin/sail" ]; then
@@ -341,7 +341,7 @@ nfutils_update() {
 
 # --- Dispatcher ---
 case "$1" in
-  laravel) shift; case "$1" in init) shift; laravel_init "$@";; sail) shift; laravel_sail "$@";; *) show_help;; esac;;
+  laravel) shift; case "$1" in create) shift; laravel_init "$@";; init) shift; laravel_sail "$@";; *) show_help;; esac;;
   composer) shift; composer_cmd "$@";;
   docker) shift; case "$1" in kill) docker_kill;; rm) docker_rm;; destroy) docker_destroy;; nuke) docker_nuke;; *) show_help;; esac;;
   destroyer) destroyer;;
@@ -396,7 +396,7 @@ _nfutils_completions() {
       return 0
       ;;
     laravel)
-      COMPREPLY=( $(compgen -W "init sail" -- ${cur}) )
+      COMPREPLY=( $(compgen -W "create init" -- ${cur}) )
       return 0
       ;;
     sail)
