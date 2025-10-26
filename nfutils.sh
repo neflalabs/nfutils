@@ -91,11 +91,35 @@ laravel_init() {
 }
 
 laravel_sail() {
+  # pastikan kita ada di folder laravel
+  if [ ! -f "artisan" ]; then
+    echo "$(red "❌ This is not a Laravel project (artisan not found).")"
+    exit 1
+  fi
+
+  echo "$(yellow "🚀 Initializing Laravel Sail...")"
+
+  # install laravel/sail if not installed yet
+  if ! grep -q "laravel/sail" composer.json 2>/dev/null; then
+    echo "$(yellow "🧩 Installing laravel/sail via composer...")"
+    docker run --rm -u "$(id -u):$(id -g)" \
+      -v "$(pwd):/app" \
+      -v composer_cache:/tmp/cache \
+      -e COMPOSER_CACHE_DIR=/tmp/cache \
+      composer require laravel/sail --dev
+  fi
+
+  # jalankan instalasi sail
   docker run --rm -u "$(id -u):$(id -g)" \
     -v "$(pwd):/var/www/html" \
-    -w /var/www/html \
+    -w /var/www/html" \
     laravelsail/php84-composer:latest php artisan sail:install "$@"
+
+  echo "$(green "✅ Laravel Sail installed successfully!")"
+  echo "Now you can run:"
+  echo "  ./vendor/bin/sail up"
 }
+
 
 composer_cmd() {
   docker run --rm -u "$(id -u):$(id -g)" \
