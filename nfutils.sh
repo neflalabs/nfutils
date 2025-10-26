@@ -11,7 +11,7 @@ NF_DIR="$HOME/bin"
 NF_PATH="$NF_DIR/nfutils"
 BASHRC="$HOME/.bashrc"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v0.0.1"
+NF_VERSION="v1.3.0"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -50,7 +50,7 @@ uninstall_nfutils() {
 update_nfutils() {
   echo ""
   bold "🔍 Checking for updates..."
-  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep -m1 'NF_VERSION=' | cut -d'"' -f2)
+  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep 'NF_VERSION=' | tail -n1 | cut -d'"' -f2)
 
   if [ -z "$LATEST_VERSION" ]; then
     echo "$(red "❌ Failed to check version (network or GitHub issue).")"
@@ -198,7 +198,7 @@ nfutils_uninstall() {
 
 nfutils_update() {
   echo "$(yellow "🔍 Checking for updates...")"
-  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep -m1 'NF_VERSION=' | cut -d'"' -f2)
+  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep 'NF_VERSION=' | tail -n1 | cut -d'"' -f2)
   if [ -z "$LATEST_VERSION" ]; then
     echo "$(red "❌ Unable to check version.")"
     exit 1
