@@ -11,7 +11,7 @@ NF_DIR="$HOME/bin"
 NF_PATH="$NF_DIR/nfutils"
 BASHRC="$HOME/.bashrc"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v0.0.3"
+NF_VERSION="v0.0.4"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
