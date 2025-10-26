@@ -35,14 +35,12 @@ nfutils lara-create nama-proyek       # membuat didalam direktori
 nfutils lara-create .                 # membuat di current dir
 nfutils lara-init                     # inisialisasi laravel sail
 nfutils lara-init -p 8000             # inisialisasi sail dan set APP_PORT
-nfutils lara-init -p 8000             # inisialisasi sail + set APP_PORT=8000
 nfutils sail up                       # sail up / docker compose up
 nfutils sail down                     # sama aja, buat down
 nfutils composer install              # composer images
 nfutils dock-nuke                     # bahaya ini semua container, images, volume, network hilang.
 nfutils destroyer                     # ini juga bahaya current dir bisa kosong!
 ```
-> Catatan: perintah lama `nfutils laravel ...` dan `nfutils docker ...` masih didukung sementara waktu, namun akan dihapus setelah transisi.
 
 ### Pembaruan & Status
 `nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi menggunakan stempel waktu + git commit contohnya `v2025-10-27T19:35:00-g4a9ea65`. script ini masih akan terus dikembangkan, dan masih belum tau kedepannya bakal seperti apa.
