@@ -13,15 +13,17 @@ BASHRC="$HOME/.bashrc"
 ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
-ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
-ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-10-27T03:22:23-g840bec8"
+NF_VERSION="v2025-10-27T03:24:49-gf84d16a"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
 yellow() { echo -e "\033[33m$1\033[0m"; }
 red() { echo -e "\033[31m$1\033[0m"; }
+
+warn_deprecated() {
+  yellow "Deprecated: gunakan '$2' menggantikan '$1'"
+}
 
 ensure_rc_file() {
   local file="$1"
@@ -206,11 +208,17 @@ NF_REPO_URL="__NF_REPO_URL__"
 
 BASHRC="$HOME/.bashrc"
 ZSHRC="$HOME/.zshrc"
+ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
+ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
 red() { echo -e "\033[31m$1\033[0m"; }
 yellow() { echo -e "\033[33m$1\033[0m"; }
+
+warn_deprecated() {
+  yellow "Deprecated: gunakan '$2' menggantikan '$1'"
+}
 
 ensure_rc_file() {
   local file="$1"
@@ -309,18 +317,21 @@ show_help() {
   echo "Usage: nfutils <command> [options]"
   echo ""
   echo "Commands:"
-  echo "  laravel create <project>   - Create new Laravel project"
-  echo "  laravel init               - Initialize Sail in existing project"
+  echo "  lara-create <project>      - Create new Laravel project"
+  echo "  lara-init                  - Initialize Sail in existing project"
   echo "  composer <args>            - Run Composer in Docker"
-  echo "  docker kill                - Stop all running containers"
-  echo "  docker rm                  - Remove all containers"
-  echo "  docker destroy             - Stop & remove all containers"
-  echo "  docker nuke                - Destroy ALL containers, images, volumes, networks"
+  echo "  dock-kill                  - Stop all running containers"
+  echo "  dock-rm                    - Remove all containers"
+  echo "  dock-destroy               - Stop & remove all containers"
+  echo "  dock-nuke                  - Destroy ALL containers, images, volumes, networks"
   echo "  destroyer                  - ⚠️ Delete all files in current dir"
   echo "  sail <args>                - Proxy to ./vendor/bin/sail"
   echo "  update                     - Update nfutils from GitHub"
   echo "  uninstall                  - Remove nfutils from your system"
   echo "  --version                  - Show nfutils version"
+  echo ""
+  echo "Compat:"
+  echo "  laravel ..., docker ...    - Aliases untuk perintah lama (deprecated)"
   echo ""
 }
 
@@ -358,7 +369,7 @@ laravel_sail() {
 sail_cmd() {
   if [ ! -f "./vendor/bin/sail" ]; then
     echo "$(red "❌ Laravel Sail is not installed (vendor/bin/sail missing).")"
-    echo "Run: nfutils laravel init"
+    echo "Run: nfutils lara-init"
     exit 1
   fi
   if [ ! -x "./vendor/bin/sail" ]; then
@@ -443,9 +454,58 @@ nfutils_update() {
 
 # --- Dispatcher ---
 case "$1" in
-  laravel) shift; case "$1" in create) shift; laravel_init "$@";; init) shift; laravel_sail "$@";; *) show_help;; esac;;
+  lara-create) shift; laravel_init "$@";;
+  lara-init) shift; laravel_sail "$@";;
+  laravel)
+    shift
+    case "${1:-}" in
+      create)
+        warn_deprecated "nfutils laravel create" "nfutils lara-create"
+        shift
+        laravel_init "$@"
+        ;;
+      init)
+        warn_deprecated "nfutils laravel init" "nfutils lara-init"
+        shift
+        laravel_sail "$@"
+        ;;
+      sail)
+        warn_deprecated "nfutils laravel sail" "nfutils lara-init"
+        shift
+        laravel_sail "$@"
+        ;;
+      *)
+        show_help
+        ;;
+    esac;;
   composer) shift; composer_cmd "$@";;
-  docker) shift; case "$1" in kill) docker_kill;; rm) docker_rm;; destroy) docker_destroy;; nuke) docker_nuke;; *) show_help;; esac;;
+  dock-kill) docker_kill;;
+  dock-rm) docker_rm;;
+  dock-destroy) docker_destroy;;
+  dock-nuke) docker_nuke;;
+  docker)
+    shift
+    case "${1:-}" in
+      kill)
+        warn_deprecated "nfutils docker kill" "nfutils dock-kill"
+        docker_kill
+        ;;
+      rm)
+        warn_deprecated "nfutils docker rm" "nfutils dock-rm"
+        docker_rm
+        ;;
+      destroy)
+        warn_deprecated "nfutils docker destroy" "nfutils dock-destroy"
+        docker_destroy
+        ;;
+      nuke)
+        warn_deprecated "nfutils docker nuke" "nfutils dock-nuke"
+        docker_nuke
+        ;;
+      *)
+        show_help
+        ;;
+    esac;;
   destroyer) destroyer;;
   uninstall) nfutils_uninstall;;
   update) nfutils_update;;
@@ -492,7 +552,7 @@ _nfutils_completions() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
 
   # subcommands
-  opts="help --version update uninstall destroyer composer docker laravel sail"
+  opts="help --version update uninstall destroyer composer sail lara-create lara-init dock-kill dock-rm dock-destroy dock-nuke laravel docker"
 
   case "${prev}" in
     docker)
@@ -524,7 +584,7 @@ _nfutils() {
   typeset -A opt_args
 
   local -a top_commands
-  top_commands=(help --version update uninstall destroyer composer docker laravel sail)
+  top_commands=(help --version update uninstall destroyer composer sail lara-create lara-init dock-kill dock-rm dock-destroy dock-nuke laravel docker)
 
   _arguments -C \
     '1:command:->command' \
