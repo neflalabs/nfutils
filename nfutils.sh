@@ -18,6 +18,26 @@ green() { echo -e "\033[32m$1\033[0m"; }
 yellow() { echo -e "\033[33m$1\033[0m"; }
 red() { echo -e "\033[31m$1\033[0m"; }
 
+ensure_bashrc() {
+  if [ ! -f "$BASHRC" ]; then
+    touch "$BASHRC"
+  fi
+}
+
+strip_line_from_file() {
+  local file="$1"
+  local substring="$2"
+  [ -f "$file" ] || return 0
+  local tmp
+  tmp=$(mktemp)
+  if grep -F -v "$substring" "$file" > "$tmp"; then
+    mv "$tmp" "$file"
+  else
+    rm -f "$tmp"
+    : > "$file"
+  fi
+}
+
 # ---------------------------------------------
 # UNINSTALL FUNCTION
 # ---------------------------------------------
@@ -34,8 +54,8 @@ uninstall_nfutils() {
     echo "$(yellow "ℹ nfutils not found in:") $NF_PATH"
   fi
 
-  if grep -q 'HOME/bin' "$BASHRC"; then
-    sed -i '/HOME\/bin/d' "$BASHRC"
+  if [ -f "$BASHRC" ] && grep -q 'HOME/bin' "$BASHRC"; then
+    strip_line_from_file "$BASHRC" "HOME/bin"
     echo "$(green "✔ Cleaned PATH entry from .bashrc")"
   fi
 
@@ -93,13 +113,35 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v1.3.0"
-NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
+NF_VERSION="__NF_VERSION__"
+NF_REPO_URL="__NF_REPO_URL__"
+
+BASHRC="$HOME/.bashrc"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
 red() { echo -e "\033[31m$1\033[0m"; }
 yellow() { echo -e "\033[33m$1\033[0m"; }
+
+ensure_bashrc() {
+  if [ ! -f "$BASHRC" ]; then
+    touch "$BASHRC"
+  fi
+}
+
+strip_line_from_file() {
+  local file="$1"
+  local substring="$2"
+  [ -f "$file" ] || return 0
+  local tmp
+  tmp=$(mktemp)
+  if grep -F -v "$substring" "$file" > "$tmp"; then
+    mv "$tmp" "$file"
+  else
+    rm -f "$tmp"
+    : > "$file"
+  fi
+}
 
 show_help() {
   echo ""
@@ -192,7 +234,9 @@ nfutils_uninstall() {
   read -p "Are you sure? (y/N): " ans
   [[ "$ans" == "y" ]] || { echo "Aborted."; exit 0; }
   rm -f "$HOME/bin/nfutils"
-  sed -i '/HOME\/bin/d' "$HOME/.bashrc" || true
+  if [ -f "$BASHRC" ]; then
+    strip_line_from_file "$BASHRC" "HOME/bin"
+  fi
   echo "$(green "✅ nfutils uninstalled.")"
 }
 
@@ -226,7 +270,13 @@ case "$1" in
 esac
 EOF
 
+tmp_file=$(mktemp)
+sed "s|__NF_VERSION__|$NF_VERSION|g; s|__NF_REPO_URL__|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+mv "$tmp_file" "$NF_PATH"
+
 chmod +x "$NF_PATH"
+
+ensure_bashrc
 
 if ! grep -q "$HOME/bin" "$BASHRC"; then
   echo 'export PATH="$HOME/bin:$PATH"' >> "$BASHRC"
@@ -277,6 +327,7 @@ EOC
 # aktifkan langsung
 if [ -f "$NF_COMPLETION" ]; then
   # pastikan di-load otomatis
+  ensure_bashrc
   if ! grep -q "$NF_COMPLETION" "$BASHRC"; then
     echo "source $NF_COMPLETION" >> "$BASHRC"
   fi
