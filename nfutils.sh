@@ -11,8 +11,12 @@ NF_DIR="$HOME/bin"
 NF_PATH="$NF_DIR/nfutils"
 BASHRC="$HOME/.bashrc"
 ZSHRC="$HOME/.zshrc"
+ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
+ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
+ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
+ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-10-27-g10a8116"
+NF_VERSION="v2025-10-27-g0d5df99"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -138,6 +142,7 @@ uninstall_nfutils() {
     echo "$(green "✔ Cleaned PATH entry from .zshrc")"
   fi
   strip_block_between_markers "$ZSHRC" "# nfutils zsh completion start" "# nfutils zsh completion end"
+  rm -f "$ZSH_COMPLETION_PATH"
 
   echo "$(green "✅ nfutils uninstalled successfully!")"
   echo "You can reload your shell with: source ~/.bashrc"
@@ -413,6 +418,7 @@ nfutils_uninstall() {
     strip_line_from_file "$ZSHRC" "HOME/bin"
     strip_block_between_markers "$ZSHRC" "# nfutils zsh completion start" "# nfutils zsh completion end"
   fi
+  rm -f "$ZSH_COMPLETION_PATH"
   echo "$(green "✅ nfutils uninstalled.")"
 }
 
@@ -470,11 +476,12 @@ echo "👉 Or run: nfutils update"
 echo ""
 
 # ------------------------------------------------------------
-# Enable bash auto-completion for nfutils
+# Enable shell completions for nfutils
 # ------------------------------------------------------------
 NF_COMPLETION="$HOME/.bash_completion.d/nfutils"
 
 mkdir -p "$(dirname "$NF_COMPLETION")"
+mkdir -p "$ZSH_COMPLETION_DIR"
 
 cat > "$NF_COMPLETION" <<'EOC'
 # nfutils bash completion
@@ -509,23 +516,64 @@ _nfutils_completions() {
 complete -F _nfutils_completions nfutils
 EOC
 
+cat > "$ZSH_COMPLETION_PATH" <<'EOZ'
+#compdef nfutils
+
+_nfutils() {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  local -a top_commands
+  top_commands=(help --version update uninstall destroyer composer docker laravel sail)
+
+  _arguments -C \
+    '1:command:->command' \
+    '*::args:->args'
+
+  case $state in
+    command)
+      _describe -t commands 'nfutils commands' top_commands
+      return
+      ;;
+    args)
+      case ${words[2]} in
+        docker)
+          local -a docker_sub
+          docker_sub=(kill rm destroy nuke)
+          _describe -t docker_subcommands 'docker subcommands' docker_sub
+          ;;
+        laravel)
+          local -a laravel_sub
+          laravel_sub=(create init)
+          _describe -t laravel_subcommands 'laravel subcommands' laravel_sub
+          ;;
+        sail)
+          local -a sail_sub
+          sail_sub=(up down restart stop build ps)
+          _describe -t sail_subcommands 'sail subcommands' sail_sub
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_nfutils "$@"
+EOZ
+
 # aktifkan langsung
 if [ -f "$NF_COMPLETION" ]; then
-  # pastikan di-load otomatis
   ensure_bashrc
   append_unique_line "$BASHRC" "source $NF_COMPLETION"
-  if [ -n "$ZSHRC" ]; then
-    ensure_zshrc
-    if ! grep -Fq "# nfutils zsh completion start" "$ZSHRC"; then
-      cat >> "$ZSHRC" <<'EOZ'
-# nfutils zsh completion start
-if [ -f "$HOME/.bash_completion.d/nfutils" ]; then
-  autoload -U +X bashcompinit && bashcompinit
-  source "$HOME/.bash_completion.d/nfutils"
+  source "$NF_COMPLETION"
 fi
+
+if [ -f "$ZSH_COMPLETION_PATH" ]; then
+  ensure_zshrc
+  strip_block_between_markers "$ZSHRC" "# nfutils zsh completion start" "# nfutils zsh completion end"
+  cat >> "$ZSHRC" <<'EOZ'
+# nfutils zsh completion start
+fpath=("$HOME/.zsh/completions" $fpath)
+autoload -Uz compinit && compinit
 # nfutils zsh completion end
 EOZ
-    fi
-  fi
-  source "$NF_COMPLETION"
 fi

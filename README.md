@@ -44,6 +44,12 @@ nfutils destroyer                     # ini juga bahaya current dir bisa kosong!
 ### Pembaruan & Status
 `nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi menggunakan tanggal-gitcommit contohnya `v2025-10-27-g4a9ea65`. script ini masih akan terus dikembangkan, dan masih belum tau kedepannya bakal seperti apa.
 
+### Auto-completion
+Installer otomatis menambahkan skrip komplesi:
+- Bash: `~/.bash_completion.d/nfutils`.
+- Zsh: `~/.zsh/completions/_nfutils` (sertakan `fpath` dan `compinit` di `.zshrc`).
+Reload shell (atau `source` file rc) setelah instal supaya saran perintah aktif.
+
 ### Kontribusi
 Silakan ajukan issue atau pull request di repositori GitHub untuk ide peningkatan atau laporan bug.
 
