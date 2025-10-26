@@ -12,7 +12,7 @@ NF_PATH="$NF_DIR/nfutils"
 BASHRC="$HOME/.bashrc"
 ZSHRC="$HOME/.zshrc"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-10-27-gaa618b3"
+NF_VERSION="v2025-10-27-g10a8116"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -67,12 +67,21 @@ strip_block_between_markers() {
 }
 
 version_key() {
-  local raw="${1#v}"
-  IFS='.' read -r major minor patch <<<"$raw"
-  major=${major:-0}
-  minor=${minor:-0}
-  patch=${patch:-0}
-  printf "%04d%04d%04d" "$major" "$minor" "$patch"
+  local ver="$1"
+  if [[ "$ver" =~ ^v([0-9]+)(\.[0-9]+){0,2}$ ]]; then
+    local raw="${ver#v}"
+    IFS='.' read -r major minor patch <<<"$raw"
+    major=${major:-0}
+    minor=${minor:-0}
+    patch=${patch:-0}
+    printf "0%04d%04d%04d" "$major" "$minor" "$patch"
+  elif [[ "$ver" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}-g[0-9a-fA-F]+$ ]]; then
+    local raw="${ver#v}"
+    raw=${raw//-/}
+    printf "1%s" "$raw"
+  else
+    printf "9%s" "$ver"
+  fi
 }
 
 version_newer() {
@@ -83,7 +92,11 @@ pick_latest_version() {
   local latest="" line key
   while IFS= read -r line; do
     [ -n "$line" ] || continue
-    [[ "$line" =~ ^v[0-9]+(\.[0-9]+){0,2}$ ]] || continue
+    if [[ "$line" =~ ^v([0-9]+)(\.[0-9]+){0,2}$ || "$line" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}-g[0-9a-fA-F]+$ ]]; then
+      :
+    else
+      continue
+    fi
     key=$(version_key "$line") || continue
     if [ -z "$latest" ] || version_newer "$line" "$latest"; then
       latest="$line"
@@ -242,12 +255,21 @@ strip_block_between_markers() {
 }
 
 version_key() {
-  local raw="${1#v}"
-  IFS='.' read -r major minor patch <<<"$raw"
-  major=${major:-0}
-  minor=${minor:-0}
-  patch=${patch:-0}
-  printf "%04d%04d%04d" "$major" "$minor" "$patch"
+  local ver="$1"
+  if [[ "$ver" =~ ^v([0-9]+)(\.[0-9]+){0,2}$ ]]; then
+    local raw="${ver#v}"
+    IFS='.' read -r major minor patch <<<"$raw"
+    major=${major:-0}
+    minor=${minor:-0}
+    patch=${patch:-0}
+    printf "0%04d%04d%04d" "$major" "$minor" "$patch"
+  elif [[ "$ver" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}-g[0-9a-fA-F]+$ ]]; then
+    local raw="${ver#v}"
+    raw=${raw//-/}
+    printf "1%s" "$raw"
+  else
+    printf "9%s" "$ver"
+  fi
 }
 
 version_newer() {
@@ -258,7 +280,11 @@ pick_latest_version() {
   local latest="" line key
   while IFS= read -r line; do
     [ -n "$line" ] || continue
-    [[ "$line" =~ ^v[0-9]+(\.[0-9]+){0,2}$ ]] || continue
+    if [[ "$line" =~ ^v([0-9]+)(\.[0-9]+){0,2}$ || "$line" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}-g[0-9a-fA-F]+$ ]]; then
+      :
+    else
+      continue
+    fi
     key=$(version_key "$line") || continue
     if [ -z "$latest" ] || version_newer "$line" "$latest"; then
       latest="$line"
