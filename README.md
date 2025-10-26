@@ -1,0 +1,39 @@
+## nfutils
+
+Perangkat utilitas berbasis Bash untuk membantu workflow pengembangan Laravel dan Docker dari NeflaLabs.
+
+### Fitur Utama
+- Instalasi skrip `nfutils` ke `$HOME/bin` lengkap dengan auto-completion Bash.
+- Manajemen proyek Laravel: inisialisasi proyek baru dan setup Laravel Sail.
+- Shortcut perintah Composer di dalam container.
+- Kumpulan perintah Docker (kill, rm, destroy, nuke) serta pembersihan direktori.
+- Dukungan pembaruan dan pencopotan `nfutils` langsung dari CLI.
+
+### Cara Instalasi
+```bash
+bash nfutils.sh
+```
+Perintah di atas akan menyalin skrip ke `$HOME/bin/nfutils`, memperbarui PATH, dan mengaktifkan auto-completion bila tersedia.
+
+### Cara Menggunakan
+```bash
+nfutils --version      # Menampilkan versi saat ini
+nfutils help           # Menampilkan daftar perintah
+nfutils update         # Memeriksa dan memasang versi terbaru
+nfutils uninstall      # Menghapus nfutils dari sistem
+```
+
+Contoh perintah lainnya:
+```bash
+nfutils laravel init nama-proyek
+nfutils laravel sail
+nfutils composer install
+nfutils docker nuke
+nfutils destroyer
+```
+
+### Pembaruan
+`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`.
+
+### Kontribusi
+Silakan ajukan issue atau pull request di repositori GitHub untuk ide peningkatan atau laporan bug.
