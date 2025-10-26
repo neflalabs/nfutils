@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-10-27T03:58:19-g31c347c"
+NF_VERSION="220a1bc"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -203,8 +203,8 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="__NF_VERSION__"
-NF_REPO_URL="__NF_REPO_URL__"
+NF_VERSION="220a1bc"
+NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
 ZSHRC="$HOME/.zshrc"
@@ -456,15 +456,6 @@ sail_cmd() {
   fi
 }
 
-# --- Composer in Docker ---
-composer_cmd() {
-  docker run --rm -u "$(id -u):$(id -g)" \
-    -v "$(pwd):/app" \
-    -v composer_cache:/tmp/cache \
-    -e COMPOSER_CACHE_DIR=/tmp/cache \
-    composer "$@"
-}
-
 # --- Docker Tools ---
 docker_kill() { docker ps -q | xargs -r docker stop; }
 docker_rm() { docker ps -a -q | xargs -r docker rm; }
@@ -487,6 +478,15 @@ destroyer() {
   [[ "$ans" == "y" ]] || { echo "Aborted."; exit 0; }
   find . -mindepth 1 -delete
   echo "$(green "✅ Directory cleared.")"
+}
+
+# --- Composer in Docker ---
+composer_cmd() {
+  docker run --rm -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/app" \
+    -v composer_cache:/tmp/cache \
+    -e COMPOSER_CACHE_DIR=/tmp/cache \
+    composer "$@"
 }
 
 # --- Self management ---
@@ -526,7 +526,6 @@ nfutils_update() {
   fi
 }
 
-# --- Dispatcher ---
 case "$1" in
   lara-create) shift; laravel_init "$@";;
   lara-init) shift; laravel_sail "$@";;
@@ -589,19 +588,16 @@ case "$1" in
   *) echo "$(red "Unknown command: $1")"; show_help;;
 esac
 EOF
-
 tmp_file=$(mktemp)
-sed "s|__NF_VERSION__|$NF_VERSION|g; s|__NF_REPO_URL__|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|220a1bc|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
 
 ensure_bashrc
 append_unique_line "$BASHRC" 'export PATH="$HOME/bin:$PATH"'
-if [ -n "$ZSHRC" ]; then
-  ensure_zshrc
-  append_unique_line "$ZSHRC" 'export PATH="$HOME/bin:$PATH"'
-fi
+ensure_zshrc
+append_unique_line "$ZSHRC" 'export PATH="$HOME/bin:$PATH"'
 
 echo ""
 green "✅ nfutils $NF_VERSION installed successfully!"
@@ -648,6 +644,7 @@ _nfutils_completions() {
   esac
 }
 complete -F _nfutils_completions nfutils
+
 EOC
 
 cat > "$ZSH_COMPLETION_PATH" <<'EOZ'
@@ -692,6 +689,7 @@ _nfutils() {
 }
 
 _nfutils "$@"
+
 EOZ
 
 # aktifkan langsung
