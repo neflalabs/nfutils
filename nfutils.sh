@@ -55,6 +55,7 @@ pick_latest_version() {
   local latest="" line key
   while IFS= read -r line; do
     [ -n "$line" ] || continue
+    [[ "$line" =~ ^v[0-9]+(\.[0-9]+){0,2}$ ]] || continue
     key=$(version_key "$line") || continue
     if [ -z "$latest" ] || version_newer "$line" "$latest"; then
       latest="$line"
@@ -99,7 +100,7 @@ uninstall_nfutils() {
 update_nfutils() {
   echo ""
   bold "🔍 Checking for updates..."
-  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep 'NF_VERSION=' | cut -d'"' -f2 | pick_latest_version)
+  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep 'NF_VERSION="v' | cut -d'"' -f2 | pick_latest_version)
 
   if [ -z "$LATEST_VERSION" ]; then
     echo "$(red "❌ Failed to check version (network or GitHub issue).")"
@@ -317,7 +318,7 @@ nfutils_uninstall() {
 
 nfutils_update() {
   echo "$(yellow "🔍 Checking for updates...")"
-  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep 'NF_VERSION=' | cut -d'"' -f2 | pick_latest_version)
+  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep 'NF_VERSION="v' | cut -d'"' -f2 | pick_latest_version)
   if [ -z "$LATEST_VERSION" ]; then
     echo "$(red "❌ Unable to check version.")"
     exit 1
