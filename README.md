@@ -42,7 +42,10 @@ nfutils destroyer                     # ini juga bahaya current dir bisa kosong!
 ```
 
 ### Pembaruan & Status
-`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi mengikuti pola semver dengan awalan `v`, contoh `v0.0.1`. script ini masih pengembangan, masih belum tau kedepannya bakal seperti apa.
+`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi menggunakan tanggal-gitcommit contohnya `v2025-10-27-g4a9ea65`. script ini masih akan terus dikembangkan, dan masih belum tau kedepannya bakal seperti apa.
 
 ### Kontribusi
 Silakan ajukan issue atau pull request di repositori GitHub untuk ide peningkatan atau laporan bug.
+
+### Lisensi
+Dirilis di bawah GNU General Public License versi 2 (lihat berkas `LICENSE`).
