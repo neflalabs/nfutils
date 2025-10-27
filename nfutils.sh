@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="0d62f8e"
+NF_VERSION="8cf7900"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -200,7 +200,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="0d62f8e"
+NF_VERSION="8cf7900"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -462,6 +462,33 @@ laravel_sail() {
   append_unique_line "$BASHRC" "$alias_line"
   append_unique_line "$ZSHRC" "$alias_line"
   echo "$(green "✅ Alias 'sail' ditambahkan ke shell profile.")"
+  if [ -f ".env" ]; then
+    python3 - <<'PY_ENV'
+from pathlib import Path
+
+env_path = Path('.env')
+lines = env_path.read_text().splitlines()
+out = []
+inserted_mysql = False
+
+for line in lines:
+    if line.startswith('MYSQL_EXTRA_OPTIONS='):
+        if not inserted_mysql:
+            out.append('MYSQL_EXTRA_OPTIONS=null')
+            inserted_mysql = True
+        continue
+    out.append(line)
+    if line.startswith('APP_FAKER_LOCALE=') and not inserted_mysql:
+        out.append('MYSQL_EXTRA_OPTIONS=null')
+        inserted_mysql = True
+
+if not inserted_mysql:
+    out.append('MYSQL_EXTRA_OPTIONS=null')
+
+env_path.write_text("\n".join(out) + "\n")
+PY_ENV
+  fi
+
   if [ -n "$port" ] && [ -f ".env" ]; then
     python3 - "$port" <<'PY'
 import sys
@@ -617,7 +644,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|0d62f8e|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|8cf7900|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"

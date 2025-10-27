@@ -12,11 +12,12 @@ Script utilitas berbasis Shell bukan ~~Pertaminya~~ untuk membantu workflow peng
 ### Cara Instalasi
 Download file nfutils.sh lalu...
 ```bash
-bash nfutils.sh
-```
-Perintah di atas akan menyalin skrip ke `$HOME/bin/nfutils`, memperbarui PATH, dan mengaktifkan auto-completion bila tersedia.
-
-Atau instal langsung dari GitHub:
+nfutils lara-create nama-proyek       # membuat didalam direktori
+nfutils lara-create .                 # membuat di current dir
+nfutils lara-init                     # inisialisasi sail + fallback MYSQL_EXTRA_OPTIONS=null
+nfutils lara-init -p 8000             # opsi untuk set APP_PORT
+nfutils sail                          # sail command.
+sail                                  # sama aja, tapi langsung tanpa nfutils. ini bakal bisa dipake setelah lara-init
 ```bash
 curl -s https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh | bash
 ```
@@ -34,7 +35,7 @@ Contoh perintah lainnya:
 ```bash
 nfutils lara-create nama-proyek       # membuat didalam direktori
 nfutils lara-create .                 # membuat di current dir
-nfutils lara-init                     # inisialisasi laravel sail
+nfutils lara-init                     # inisialisasi sail + fallback MYSQL_EXTRA_OPTIONS=null
 nfutils lara-init -p 8000             # inisialisasi sail dan set APP_PORT
 nfutils sail                          # sail command.
 sail                                  # sama aja, tapi langsung tanpa nfutils. ini bakal bisa dipake setelah lara-init
