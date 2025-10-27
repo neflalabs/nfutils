@@ -23,7 +23,7 @@ curl -s https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh | ba
 
 ### Cara Menggunakan
 ```bash
-nfutils --version      # Menampilkan versi saat ini
+nfutils version      # Menampilkan versi saat ini
 nfutils help           # Menampilkan daftar perintah
 nfutils update         # Memeriksa dan memasang versi terbaru
 nfutils uninstall      # Menghapus nfutils dari sistem

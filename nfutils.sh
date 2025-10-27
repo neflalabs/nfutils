@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="22017fe"
+NF_VERSION="da31aed"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -200,7 +200,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="22017fe"
+NF_VERSION="da31aed"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -306,7 +306,8 @@ pick_latest_version() {
 
 show_help() {
   echo ""
-  bold "NFUTILS - Laravel & Docker Developer Helper ($NF_VERSION)"
+  bold "NFUTILS - Laravel inside Docker Script Helper ($NF_VERSION)"
+  echo "by NeflaLabs - https://npx.my.id"
   echo ""
   echo "Usage: nfutils <command> [options]"
   echo ""
@@ -317,12 +318,13 @@ show_help() {
   echo "  dock-kill                  - Stop all running containers"
   echo "  dock-rm                    - Remove all containers"
   echo "  dock-destroy               - Stop & remove all containers"
-  echo "  dock-nuke                  - Destroy ALL containers, images, volumes, networks"
-  echo "  destroyer                  - ⚠️ Delete all files in current dir"
+  echo "  dock-nuke                  - ⚠️ Destroy ALL containers, images, volumes, networks"
+  echo "  dirnuke                    - ⚠️ Effectively DELETE all files + folders in current dir"
   echo "  sail <args>                - Proxy to ./vendor/bin/sail"
   echo "  update                     - Update nfutils from GitHub"
   echo "  uninstall                  - Remove nfutils from your system"
-  echo "  --version                  - Show nfutils version"
+  echo "  version / -v               - Show nfutils version"
+  echo "  help                       - Show this help message"
   echo ""
   echo ""
 }
@@ -453,8 +455,9 @@ docker_kill() { docker ps -q | xargs -r docker stop; }
 docker_rm() { docker ps -a -q | xargs -r docker rm; }
 docker_destroy() { docker ps -a -q | xargs -r docker stop && docker ps -a -q | xargs -r docker rm; }
 
+# --- Dangerous Operations ---
 docker_nuke() {
-  echo "$(red "⚠️  This will delete ALL containers, images, volumes, and networks!")"
+  echo "$(red "⚠️  This will stop running and delete ALL containers, images, volumes, and networks!")"
   read -p "Are you sure? (y/N): " ans
   [[ "$ans" == "y" ]] || { echo "Aborted."; exit 0; }
   docker ps -a -q | xargs -r docker stop
@@ -465,7 +468,7 @@ docker_nuke() {
   echo "$(green "✅ Docker fully nuked.")"
 }
 
-destroyer() {
+dirnuke() {
   read -p "⚠️  Delete ALL files in current directory? (y/N): " ans
   [[ "$ans" == "y" ]] || { echo "Aborted."; exit 0; }
   find . -mindepth 1 -delete
@@ -526,17 +529,17 @@ case "$1" in
   dock-rm) docker_rm;;
   dock-destroy) docker_destroy;;
   dock-nuke) docker_nuke;;
-  destroyer) destroyer;;
+  dirnuke) dirnuke;;
   uninstall) nfutils_uninstall;;
   update) nfutils_update;;
   sail) shift; sail_cmd "$@";;
-  --version|-v) echo "nfutils $NF_VERSION";;
+  version|-v) echo "nfutils $NF_VERSION";;
   help|"") show_help;;
   *) echo "$(red "Unknown command: $1")"; show_help;;
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|22017fe|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|da31aed|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
@@ -569,7 +572,7 @@ _nfutils_completions() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
 
   # subcommands
-  opts="help --version update uninstall destroyer composer sail lara-create lara-init dock-kill dock-rm dock-destroy dock-nuke"
+  opts="help version update uninstall destroyer composer sail lara-create lara-init dock-kill dock-rm dock-destroy dock-nuke"
 
   case "${prev}" in
     sail)
@@ -594,7 +597,7 @@ _nfutils() {
   typeset -A opt_args
 
   local -a top_commands
-  top_commands=(help --version update uninstall destroyer composer sail lara-create lara-init dock-kill dock-rm dock-destroy dock-nuke)
+  top_commands=(help version update uninstall destroyer composer sail lara-create lara-init dock-kill dock-rm dock-destroy dock-nuke)
 
   _arguments -C \
     '1:command:->command' \
