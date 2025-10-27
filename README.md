@@ -1,6 +1,8 @@
-## nfutils
+# nfutils
 
-Script utilitas berbasis Shell bukan ~~Pertaminya~~ untuk membantu workflow pengembangan Laravel menggunakan Docker yang akan lebih baik menggunakan [CodeSpace](https://github.com/codespaces) sebagai lingkungan pengembangannya. tapi ngga pake CodeSpace juga gapapa. up to you la.
+Script utilitas berbasis Shell bukan ~~Pertaminya~~ untuk membantu workflow pengembangan Laravel menggunakan Docker yang juga bisa menggunakan [CodeSpace](https://github.com/codespaces) sebagai lingkungan pengembangannya. tapi ngga pake CodeSpace juga gapapa. terserah kamu asal jangan make powershell.
+
+---
 
 ### Fitur Utama
 - Instalasi skrip `nfutils` ke `$HOME/bin` dengan auto-completion [Tab] key.
@@ -9,47 +11,44 @@ Script utilitas berbasis Shell bukan ~~Pertaminya~~ untuk membantu workflow peng
 - Kumpulan perintah Docker (kill, rm, destroy, nuke) serta pembersihan direktori.
 - Dukungan pembaruan dan pencopotan `nfutils` langsung dari CLI.
 
+### Prasyarat
+- Pastikan Docker terpasang dan daemon berjalan. `nfutils` akan menghentikan eksekusi dan menampilkan instruksi instalasi jika Docker/Compose belum tersedia
+
 ### Cara Instalasi
-Download file nfutils.sh lalu...
-```bash
-nfutils lara-create nama-proyek       # membuat didalam direktori
-nfutils lara-create .                 # membuat di current dir
-nfutils lara-init                     # inisialisasi sail + fallback MYSQL_EXTRA_OPTIONS=null
-nfutils lara-init -p 8000             # opsi untuk set APP_PORT
-nfutils sail                          # sail command.
-sail                                  # sama aja, tapi langsung tanpa nfutils. ini bakal bisa dipake setelah lara-init
-```bash
+Download file `nfutils.sh` / atau kamu bisa copy ini :
+
+```
 curl -s https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh | bash
 ```
-
+---
 ### Cara Menggunakan
 Pastikan setelah install baik download file ./nfutils.sh atau via curl sebaiknya kamu melakukan sourcing ke shell.rc kamu. dengan cara `source ~/.zshrc` atau `source ~/.bashrc`
-```bash
-nfutils version        # Menampilkan versi saat ini
-nfutils help           # Menampilkan daftar perintah
-nfutils update         # Memeriksa dan memasang versi terbaru
-nfutils uninstall      # Menghapus nfutils dari sistem
+
+
 ```
-
-Contoh perintah lainnya:
-```bash
-nfutils lara-create nama-proyek       # membuat didalam direktori
-nfutils lara-create .                 # membuat di current dir
-nfutils lara-init                     # inisialisasi sail + fallback MYSQL_EXTRA_OPTIONS=null
-nfutils lara-init -p 8000             # inisialisasi sail dan set APP_PORT
-nfutils sail                          # sail command.
-sail                                  # sama aja, tapi langsung tanpa nfutils. ini bakal bisa dipake setelah lara-init
-nfutils composer install              # composer images
-nfutils dock-nuke                     # bahaya ini semua container, images, volume, network hilang.
-nfutils destroyer                     # ini juga bahaya current dir bisa kosong!
+nfutils lara-create <project>      - Create new nfutils Laravel project
+nfutils lara-init [-p PORT]        - Initialize Sail in existing project
+nfutils composer <args>            - Run Composer in Docker
+nfutils dock-kill                  - Stop all running containers
+nfutils dock-rm                    - Remove all containers
+nfutils dock-destroy               - Stop & remove all containers ⚠️
+nfutils dock-nuke                  - Destroy ALL containers, images,  volumes, networks ⚠️
+nfutils destroyer                  - Delete all files in current dir ⚠️
+nfutils sail <args>                - Command via proxy nfutils
+sail <args>                        - directly add into rc files while doing lara-init
+nfutils update                     - Update nfutils from GitHub
+nfutils uninstall                  - Remove nfutils from your system
+nfutils version / -v               - Show nfutils version
+nfutils help                       - Show this help message
 ```
+---
 
-### Prasyarat
-- Pastikan Docker terpasang dan daemon berjalan. `nfutils` akan menghentikan eksekusi dan menampilkan instruksi instalasi jika Docker/Compose belum tersedia.
-
+---
 
 ### Pembaruan & Status
-`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi menggunakan stempel waktu + git commit contohnya `v2025-10-27T19:35:00-g4a9ea65`. script ini masih akan terus dikembangkan, dan masih belum tau kedepannya bakal seperti apa.
+`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi menggunakan stempel waktu + git commit contohnya `v2025-10-27T21:52:40-g25239fb`. script ini masih akan terus dikembangkan, dan masih belum tau kedepannya bakal seperti apa.
+
+---
 
 ### Auto-completion
 Installer otomatis menambahkan pelengkap otomatis:
@@ -58,9 +57,3 @@ Installer otomatis menambahkan pelengkap otomatis:
 Reload shell (atau `source` file rc) setelah instal supaya saran perintah aktif.
 
 Saat menjalankan `nfutils lara-init`, alias `sail` otomatis ditambahkan ke profil shell sehingga kamu bisa menjalankan `sail up` langsung.
-
-### Kontribusi
-Silakan ajukan issue atau pull request di repositori GitHub untuk ide peningkatan atau laporan bug.
-
-### Lisensi
-Dirilis di bawah GNU General Public License versi 2 (lihat berkas `LICENSE`).
