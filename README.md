@@ -23,7 +23,7 @@ curl -s https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh | ba
 
 ### Cara Menggunakan
 ```bash
-nfutils version      # Menampilkan versi saat ini
+nfutils version        # Menampilkan versi saat ini
 nfutils help           # Menampilkan daftar perintah
 nfutils update         # Memeriksa dan memasang versi terbaru
 nfutils uninstall      # Menghapus nfutils dari sistem
@@ -35,8 +35,8 @@ nfutils lara-create nama-proyek       # membuat didalam direktori
 nfutils lara-create .                 # membuat di current dir
 nfutils lara-init                     # inisialisasi laravel sail
 nfutils lara-init -p 8000             # inisialisasi sail dan set APP_PORT
-nfutils sail up                       # sail up / docker compose up
-nfutils sail down                     # sama aja, buat down
+nfutils sail                          # sail command.
+sail                                  # sama aja, tapi langsung tanpa nfutils. ini bakal bisa dipake setelah lara-init
 nfutils composer install              # composer images
 nfutils dock-nuke                     # bahaya ini semua container, images, volume, network hilang.
 nfutils destroyer                     # ini juga bahaya current dir bisa kosong!
