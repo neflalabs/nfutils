@@ -22,6 +22,7 @@ curl -s https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh | ba
 ```
 
 ### Cara Menggunakan
+Pastikan setelah install baik pakai ./nfutils.sh atau via curl sebaiknya kamu melakukan sourcing ke shell.rc kamu. dengan cara `source ~/.zshrc` atau `source ~/.bashrc`
 ```bash
 nfutils version        # Menampilkan versi saat ini
 nfutils help           # Menampilkan daftar perintah
@@ -46,7 +47,7 @@ nfutils destroyer                     # ini juga bahaya current dir bisa kosong!
 `nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi menggunakan stempel waktu + git commit contohnya `v2025-10-27T19:35:00-g4a9ea65`. script ini masih akan terus dikembangkan, dan masih belum tau kedepannya bakal seperti apa.
 
 ### Auto-completion
-Installer otomatis menambahkan skrip komplesi:
+Installer otomatis menambahkan pelengkap otomatis:
 - Bash: `~/.bash_completion.d/nfutils`.
 - Zsh: `~/.zsh/completions/_nfutils` (sertakan `fpath` dan `compinit` di `.zshrc`).
 Reload shell (atau `source` file rc) setelah instal supaya saran perintah aktif.
