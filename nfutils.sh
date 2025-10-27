@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="da31aed"
+NF_VERSION="0d62f8e"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -200,7 +200,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="da31aed"
+NF_VERSION="0d62f8e"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -212,7 +212,6 @@ bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
 red() { echo -e "\033[31m$1\033[0m"; }
 yellow() { echo -e "\033[33m$1\033[0m"; }
-
 
 ensure_rc_file() {
   local file="$1"
@@ -229,6 +228,68 @@ append_unique_line() {
   local line="$2"
   ensure_rc_file "$file"
   grep -Fxq "$line" "$file" || printf '%s\n' "$line" >> "$file"
+}
+
+has_cmd() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+docker_install_hint() {
+  if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    case "$ID" in
+      ubuntu|debian)
+        echo "  sudo apt-get update && sudo apt-get install docker.io docker-compose-plugin"
+        ;;
+      arch|manjaro)
+        echo "  sudo pacman -S docker docker-compose"
+        ;;
+      fedora)
+        echo "  sudo dnf install docker docker-compose-plugin"
+        ;;
+      centos|rhel)
+        echo "  sudo yum install docker docker-compose-plugin"
+        ;;
+      opensuse*|sles)
+        echo "  sudo zypper install docker docker-compose"
+        ;;
+      *)
+        echo "  (lihat dokumentasi resmi Docker untuk distro $ID)"
+        ;;
+    esac
+  else
+    echo "  (lihat dokumentasi resmi Docker untuk instruksi instalasi)"
+  fi
+}
+
+has_docker_compose() {
+  docker compose version >/dev/null 2>&1 || docker-compose --version >/dev/null 2>&1
+}
+
+ensure_docker() {
+  if ! has_cmd docker; then
+    echo "$(red "❌ Docker CLI tidak ditemukan.")"
+    echo "Install Docker menggunakan perintah seperti:"
+    docker_install_hint
+    echo "Dokumentasi: https://docs.docker.com/engine/install/"
+    exit 1
+  fi
+
+  if ! docker info >/dev/null 2>&1; then
+    echo "$(red "❌ Docker daemon tidak berjalan.")"
+    echo "Pastikan layanan Docker aktif, contoh: sudo systemctl start docker"
+    exit 1
+  fi
+
+  if ! has_docker_compose; then
+    echo "$(red "❌ Docker Compose tidak tersedia.")"
+    echo "Install plugin docker compose (docker compose) atau docker-compose CLI."
+    exit 1
+  fi
+
+  if ! id -Gn "$USER" | tr ' ' '\n' | grep -qx docker; then
+    echo "$(yellow "ℹ Tambahkan user ke grup docker agar tidak perlu sudo: sudo usermod -aG docker $USER")"
+  fi
 }
 
 strip_line_from_file() {
@@ -318,19 +379,19 @@ show_help() {
   echo "  dock-kill                  - Stop all running containers"
   echo "  dock-rm                    - Remove all containers"
   echo "  dock-destroy               - Stop & remove all containers"
-  echo "  dock-nuke                  - ⚠️ Destroy ALL containers, images, volumes, networks"
-  echo "  dirnuke                    - ⚠️ Effectively DELETE all files + folders in current dir"
+  echo "  dock-nuke                  - Destroy ALL containers, images, volumes, networks"
+  echo "  destroyer                  - ⚠️ Delete all files in current dir"
   echo "  sail <args>                - Proxy to ./vendor/bin/sail"
   echo "  update                     - Update nfutils from GitHub"
   echo "  uninstall                  - Remove nfutils from your system"
   echo "  version / -v               - Show nfutils version"
   echo "  help                       - Show this help message"
   echo ""
-  echo ""
 }
 
 # --- Laravel Tools ---
 laravel_init() {
+  ensure_docker
   docker run --rm -u "$(id -u):$(id -g)" \
     -v "$(pwd):/app" \
     -v composer_cache:/tmp/cache \
@@ -339,6 +400,8 @@ laravel_init() {
 }
 
 laravel_sail() {
+  ensure_docker
+
   local port=""
   local sail_args=()
   while [ $# -gt 0 ]; do
@@ -435,6 +498,8 @@ PY
 }
 
 sail_cmd() {
+  ensure_docker
+
   if [ ! -f "./vendor/bin/sail" ]; then
     echo "$(red "❌ Laravel Sail is not installed (vendor/bin/sail missing).")"
     echo "Run: nfutils lara-init"
@@ -451,12 +516,25 @@ sail_cmd() {
 }
 
 # --- Docker Tools ---
-docker_kill() { docker ps -q | xargs -r docker stop; }
-docker_rm() { docker ps -a -q | xargs -r docker rm; }
-docker_destroy() { docker ps -a -q | xargs -r docker stop && docker ps -a -q | xargs -r docker rm; }
+docker_kill() {
+  ensure_docker
+  docker ps -q | xargs -r docker stop
+}
+
+docker_rm() {
+  ensure_docker
+  docker ps -a -q | xargs -r docker rm
+}
+
+docker_destroy() {
+  ensure_docker
+  docker ps -a -q | xargs -r docker stop
+  docker ps -a -q | xargs -r docker rm
+}
 
 # --- Dangerous Operations ---
 docker_nuke() {
+  ensure_docker
   echo "$(red "⚠️  This will stop running and delete ALL containers, images, volumes, and networks!")"
   read -p "Are you sure? (y/N): " ans
   [[ "$ans" == "y" ]] || { echo "Aborted."; exit 0; }
@@ -468,15 +546,15 @@ docker_nuke() {
   echo "$(green "✅ Docker fully nuked.")"
 }
 
-dirnuke() {
+destroyer() {
   read -p "⚠️  Delete ALL files in current directory? (y/N): " ans
   [[ "$ans" == "y" ]] || { echo "Aborted."; exit 0; }
   find . -mindepth 1 -delete
   echo "$(green "✅ Directory cleared.")"
 }
-
 # --- Composer in Docker ---
 composer_cmd() {
+  ensure_docker
   docker run --rm -u "$(id -u):$(id -g)" \
     -v "$(pwd):/app" \
     -v composer_cache:/tmp/cache \
@@ -529,7 +607,7 @@ case "$1" in
   dock-rm) docker_rm;;
   dock-destroy) docker_destroy;;
   dock-nuke) docker_nuke;;
-  dirnuke) dirnuke;;
+  destroyer) destroyer;;
   uninstall) nfutils_uninstall;;
   update) nfutils_update;;
   sail) shift; sail_cmd "$@";;
@@ -539,7 +617,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|da31aed|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|0d62f8e|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
@@ -572,7 +650,7 @@ _nfutils_completions() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
 
   # subcommands
-  opts="help version update uninstall destroyer composer sail lara-create lara-init dock-kill dock-rm dock-destroy dock-nuke"
+  opts="help version update uninstall destroyer composer sail lara-create lara-init dock-kill dock-rm dock-destroy dock-nuke destroyer"
 
   case "${prev}" in
     sail)
@@ -597,7 +675,7 @@ _nfutils() {
   typeset -A opt_args
 
   local -a top_commands
-  top_commands=(help version update uninstall destroyer composer sail lara-create lara-init dock-kill dock-rm dock-destroy dock-nuke)
+  top_commands=(help version update uninstall destroyer composer sail lara-create lara-init dock-kill dock-rm dock-destroy dock-nuke destroyer)
 
   _arguments -C \
     '1:command:->command' \

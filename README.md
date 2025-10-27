@@ -43,6 +43,10 @@ nfutils dock-nuke                     # bahaya ini semua container, images, volu
 nfutils destroyer                     # ini juga bahaya current dir bisa kosong!
 ```
 
+### Prasyarat
+- Pastikan Docker terpasang dan daemon berjalan. `nfutils` akan menghentikan eksekusi dan menampilkan instruksi instalasi jika Docker/Compose belum tersedia.
+
+
 ### Pembaruan & Status
 `nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi menggunakan stempel waktu + git commit contohnya `v2025-10-27T19:35:00-g4a9ea65`. script ini masih akan terus dikembangkan, dan masih belum tau kedepannya bakal seperti apa.
 
