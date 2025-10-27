@@ -22,7 +22,7 @@ curl -s https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh | ba
 ```
 
 ### Cara Menggunakan
-Pastikan setelah install baik pakai ./nfutils.sh atau via curl sebaiknya kamu melakukan sourcing ke shell.rc kamu. dengan cara `source ~/.zshrc` atau `source ~/.bashrc`
+Pastikan setelah install baik download file ./nfutils.sh atau via curl sebaiknya kamu melakukan sourcing ke shell.rc kamu. dengan cara `source ~/.zshrc` atau `source ~/.bashrc`
 ```bash
 nfutils version        # Menampilkan versi saat ini
 nfutils help           # Menampilkan daftar perintah
