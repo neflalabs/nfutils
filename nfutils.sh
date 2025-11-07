@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-11-08T02:23:08-g9ae5392"
+NF_VERSION="v2025-11-08T02:37:04-ge643453"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -262,7 +262,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-11-08T02:23:08-g9ae5392"
+NF_VERSION="v2025-11-08T02:37:04-ge643453"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -582,8 +582,7 @@ laravel_sail() {
   echo "$(green "✅ Laravel Sail installed successfully!")"
   local alias_line="alias sail='sh \$([ -f sail ] && echo sail || echo vendor/bin/sail)'"
   append_unique_line "$BASHRC" "$alias_line"
-  append_unique_line "$ZSHRC" "$alias_line"
-  echo "$(green "✅ Alias 'sail' ditambahkan ke shell profile.")"
+  echo "$(green "✅ Alias 'sail' tersedia di shell profile (bash & zsh).")"
   if [ -f ".env" ]; then
     python3 - <<'PY_ENV'
 from pathlib import Path
@@ -767,7 +766,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-11-08T02:23:08-g9ae5392|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-11-08T02:37:04-ge643453|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
@@ -943,6 +942,7 @@ if [ -f "$ZSH_COMPLETION_PATH" ]; then
   ensure_spacing_before_append "$ZSHRC"
   cat >> "$ZSHRC" <<'EOZ'
 # nfutils zsh completion start
+alias sail='sh $([ -f sail ] && echo sail || echo vendor/bin/sail)'
 fpath=("$HOME/.zsh/completions" $fpath)
 autoload -Uz compinit && compinit
 # nfutils zsh completion end
