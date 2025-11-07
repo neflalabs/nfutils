@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-11-08T03:58:35-gf4c80e3"
+NF_VERSION="v2025-11-08T04:04:14-ge549c8d"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -262,7 +262,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-11-08T03:58:35-gf4c80e3"
+NF_VERSION="v2025-11-08T04:04:14-ge549c8d"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -499,7 +499,6 @@ show_help() {
   echo "  composer <args>            - Run Composer in Docker"
   echo "  destroyer                  - ⚠️ Delete all files in current dir"
   echo "  nuke                       - ☢️  Stop Docker, remove containers/images, wipe folder"
-  echo "  sail <args>                - Proxy to ./vendor/bin/sail"
   echo "  update                     - Update nfutils from GitHub"
   echo "  uninstall                  - Remove nfutils from your system"
   echo "  version / -v               - Show nfutils version"
@@ -679,24 +678,6 @@ laravel_cmd() {
       ;;
   esac
 }
-
-sail_cmd() {
-  ensure_docker
-
-  if [ ! -f "./vendor/bin/sail" ]; then
-    echo "$(red "❌ Laravel Sail is not installed (vendor/bin/sail missing).")"
-    echo "Run: nfutils laravel init"
-    exit 1
-  fi
-  if [ ! -x "./vendor/bin/sail" ]; then
-    chmod +x "./vendor/bin/sail"
-  fi
-  if [ $# -eq 0 ]; then
-    ./vendor/bin/sail
-  else
-    ./vendor/bin/sail "$@"
-  fi
-}
 # --- Dangerous Operations ---
 destroyer() {
   read -p "⚠️  Delete ALL files in current directory? (y/N): " ans
@@ -791,14 +772,13 @@ case "$1" in
   nuke) nuke_everything;;
   uninstall) nfutils_uninstall;;
   update) nfutils_update;;
-  sail) shift; sail_cmd "$@";;
   version|-v) echo "nfutils $NF_VERSION";;
   "") show_help;;
   *) echo "$(red "Unknown command: $1")"; show_help;;
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-11-08T03:58:35-gf4c80e3|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-11-08T04:04:14-ge549c8d|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
@@ -831,9 +811,8 @@ _nfutils_completions() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   cmd="${COMP_WORDS[1]:-}"
 
-  local top_commands="laravel composer destroyer nuke sail update uninstall version help"
+  local top_commands="laravel composer destroyer nuke update uninstall version help"
   local laravel_subcommands="create init help"
-  local sail_subcommands="up down restart stop build ps"
 
   if [ $COMP_CWORD -eq 1 ]; then
     COMPREPLY=( $(compgen -W "${top_commands}" -- "${cur}") )
@@ -878,10 +857,6 @@ _nfutils_completions() {
       esac
       return 0
       ;;
-    sail)
-      COMPREPLY=( $(compgen -W "${sail_subcommands}" -- "${cur}") )
-      return 0
-      ;;
   esac
 
   COMPREPLY=()
@@ -894,10 +869,9 @@ cat > "$ZSH_COMPLETION_PATH" <<'EOZ'
 #compdef nfutils
 
 _nfutils() {
-  local -a top_commands laravel_sub sail_sub
-  top_commands=(laravel composer destroyer nuke sail update uninstall version help)
+  local -a top_commands laravel_sub
+  top_commands=(laravel composer destroyer nuke update uninstall version help)
   laravel_sub=(create init help)
-  sail_sub=(up down restart stop build ps)
 
   if (( CURRENT == 2 )); then
     _describe -t commands 'nfutils commands' top_commands
@@ -920,9 +894,6 @@ _nfutils() {
             '--port=[set custom Sail port]'
           ;;
       esac
-      ;;
-    sail)
-      _describe -t sail_subcommands 'sail subcommands' sail_sub
       ;;
   esac
 }

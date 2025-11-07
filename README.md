@@ -31,7 +31,6 @@ nfutils laravel init [-p PORT]     - Install Laravel Sail + alias `sail`
 nfutils composer <args>            - Run Composer in Docker
 nfutils destroyer                  - Delete all files in current dir ⚠️
 nfutils nuke                       - ☢️ Stop Docker, remove containers/images/volumes/networks, delete current dir (2x confirm)
-nfutils sail <args>                - Command via proxy nfutils
 sail <args>                        - directly add into rc files while doing lara-init
 nfutils update                     - Update nfutils from GitHub
 nfutils uninstall                  - Remove nfutils from your system
