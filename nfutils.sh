@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-11-08T02:37:04-ge643453"
+NF_VERSION="v2025-11-08T02:53:27-g1a32062"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -262,7 +262,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-11-08T02:37:04-ge643453"
+NF_VERSION="v2025-11-08T02:53:27-g1a32062"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -498,6 +498,7 @@ show_help() {
   echo "  laravel init [-p PORT]     - Initialize Sail in existing project"
   echo "  composer <args>            - Run Composer in Docker"
   echo "  destroyer                  - ⚠️ Delete all files in current dir"
+  echo "  nuke                       - ☢️  Stop Docker, remove containers/images, wipe folder"
   echo "  sail <args>                - Proxy to ./vendor/bin/sail"
   echo "  update                     - Update nfutils from GitHub"
   echo "  uninstall                  - Remove nfutils from your system"
@@ -703,6 +704,36 @@ destroyer() {
   find . -mindepth 1 -delete
   echo "$(green "✅ Directory cleared.")"
 }
+
+nuke_everything() {
+  echo "$(red "☢️  WARNING: This will stop Docker, remove containers/images, and delete EVERYTHING in $(pwd)")"
+  read -p "Type 'nuke' to continue: " first
+  [[ "$first" == "nuke" ]] || { echo "Aborted."; exit 1; }
+  read -p "This action is irreversible. Type 'DELETE' to proceed: " second
+  [[ "$second" == "DELETE" ]] || { echo "Aborted."; exit 1; }
+
+  ensure_docker
+
+  echo "$(yellow "🛑 Stopping running containers...")"
+  docker ps -q | xargs -r docker stop >/dev/null 2>&1 || true
+
+  echo "$(yellow "🧹 Removing containers...")"
+  docker ps -aq | xargs -r docker rm >/dev/null 2>&1 || true
+
+  echo "$(yellow "🧽 Removing images...")"
+  docker images -q | xargs -r docker rmi -f >/dev/null 2>&1 || true
+
+  echo "$(yellow "🗂  Removing volumes...")"
+  docker volume ls -q | xargs -r docker volume rm >/dev/null 2>&1 || true
+
+  echo "$(yellow "🌐 Removing custom networks...")"
+  docker network ls -q | grep -Ev '^(bridge|host|none)$' | xargs -r docker network rm >/dev/null 2>&1 || true
+
+  echo "$(yellow "🧨 Deleting current directory contents...")"
+  find . -mindepth 1 -delete
+
+  echo "$(green "✅ nfutils nuke completed. Directory wiped clean.")"
+}
 # --- Composer in Docker ---
 composer_cmd() {
   ensure_docker
@@ -757,6 +788,7 @@ case "$1" in
   laravel) shift; laravel_cmd "$@";;
   composer) shift; composer_cmd "$@";;
   destroyer) destroyer;;
+  nuke) nuke_everything;;
   uninstall) nfutils_uninstall;;
   update) nfutils_update;;
   sail) shift; sail_cmd "$@";;
@@ -766,7 +798,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-11-08T02:37:04-ge643453|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-11-08T02:53:27-g1a32062|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
@@ -799,7 +831,7 @@ _nfutils_completions() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   cmd="${COMP_WORDS[1]:-}"
 
-  local top_commands="version update uninstall destroyer composer sail laravel"
+  local top_commands="version update uninstall destroyer nuke composer sail laravel"
   local laravel_subcommands="create init help"
 
   if [ $COMP_CWORD -le 1 ]; then
@@ -875,7 +907,7 @@ _nfutils() {
   typeset -A opt_args
 
   local -a top_commands
-  top_commands=(version update uninstall destroyer composer sail laravel)
+  top_commands=(version update uninstall destroyer nuke composer sail laravel)
   local -a laravel_sub
   laravel_sub=(create init help)
 
