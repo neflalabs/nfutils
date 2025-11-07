@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-11-08T02:18:09-g149a458"
+NF_VERSION="v2025-11-08T02:23:08-g9ae5392"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -262,7 +262,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-11-08T02:18:09-g149a458"
+NF_VERSION="v2025-11-08T02:23:08-g9ae5392"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -767,7 +767,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-11-08T02:18:09-g149a458|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-11-08T02:23:08-g9ae5392|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
@@ -801,8 +801,15 @@ _nfutils_completions() {
   cmd="${COMP_WORDS[1]:-}"
 
   local top_commands="version update uninstall destroyer composer sail laravel"
+  local laravel_subcommands="create init help"
 
   if [ $COMP_CWORD -le 1 ]; then
+    if [ "$cur" = "laravel" ]; then
+      for sub in $laravel_subcommands; do
+        COMPREPLY+=("laravel\\ ${sub}")
+      done
+      return 0
+    fi
     COMPREPLY=( $(compgen -W "${top_commands}" -- "${cur}") )
     return 0
   fi
@@ -814,7 +821,7 @@ _nfutils_completions() {
       ;;
     laravel)
       if [ $COMP_CWORD -eq 2 ]; then
-        COMPREPLY=( $(compgen -W "create init help" -- "${cur}") )
+        COMPREPLY=( $(compgen -W "${laravel_subcommands}" -- "${cur}") )
         return 0
       fi
       subcmd="${COMP_WORDS[2]:-}"
@@ -870,6 +877,8 @@ _nfutils() {
 
   local -a top_commands
   top_commands=(version update uninstall destroyer composer sail laravel)
+  local -a laravel_sub
+  laravel_sub=(create init help)
 
   _arguments -C \
     '1:command:->command' \
@@ -877,6 +886,12 @@ _nfutils() {
 
   case $state in
     command)
+      if (( CURRENT == 2 )) && [[ ${words[CURRENT]} == "laravel" ]]; then
+        local -a laravel_expanded
+        laravel_expanded=("laravel create" "laravel init" "laravel help")
+        compadd -Q -a laravel_expanded
+        return
+      fi
       _describe -t commands 'nfutils commands' top_commands
       return
       ;;
@@ -889,8 +904,6 @@ _nfutils() {
           ;;
         laravel)
           if (( CURRENT == 3 )); then
-            local -a laravel_sub
-            laravel_sub=(create init help)
             _describe -t laravel_subcommands 'laravel subcommands' laravel_sub
           else
             case ${words[3]} in
