@@ -5,11 +5,11 @@ Script utilitas berbasis Shell bukan ~~Pertaminya~~ untuk membantu workflow peng
 ---
 
 ### Fitur Utama
-- Instalasi skrip `nfutils` ke `$HOME/bin` dengan auto-completion [Tab] key.
-- Manajemen proyek Laravel: inisialisasi proyek baru, setup Laravel Sail, dan shortcut perintah Sail.
-- Shortcut perintah Composer di dalam container.
-- Kumpulan perintah Docker (kill, rm, destroy, nuke) serta pembersihan direktori.
-- Dukungan pembaruan dan pencopotan `nfutils` langsung dari CLI.
+- Instalasi skrip `nfutils` ke `$HOME/bin` lengkap dengan auto-completion (bash & zsh).
+- Manajemen proyek Laravel: `laravel create` untuk bootstrap proyek baru dan `laravel init` untuk setup Sail + alias `sail`.
+- Shortcut perintah Composer di dalam container Docker secara transparan.
+- Perintah pembersihan: `destroyer` untuk mengosongkan direktori saat ini, dan `nuke` (double-confirm) untuk mematikan Docker, menghapus container/image/volume/network, lalu menghapus isi direktori aktif.
+- Dukungan pembaruan (`nfutils update`) dan pencopotan (`nfutils uninstall`) langsung dari CLI.
 
 ### Prasyarat
 - Pastikan Docker terpasang dan daemon berjalan. `nfutils` akan menghentikan eksekusi dan menampilkan instruksi instalasi jika Docker/Compose belum tersedia
@@ -26,14 +26,11 @@ Pastikan setelah install baik download file ./nfutils.sh atau via curl sebaiknya
 
 
 ```
-nfutils lara-create <project>      - Create new nfutils Laravel project
-nfutils lara-init [-p PORT]        - Initialize Sail in existing project
+nfutils laravel create <dir|.>     - Create new Laravel project (di dalam Docker)
+nfutils laravel init [-p PORT]     - Install Laravel Sail + alias `sail`
 nfutils composer <args>            - Run Composer in Docker
-nfutils dock-kill                  - Stop all running containers
-nfutils dock-rm                    - Remove all containers
-nfutils dock-destroy               - Stop & remove all containers ⚠️
-nfutils dock-nuke                  - Destroy ALL containers, images,  volumes, networks ⚠️
 nfutils destroyer                  - Delete all files in current dir ⚠️
+nfutils nuke                       - ☢️ Stop Docker, remove containers/images/volumes/networks, delete current dir (2x confirm)
 nfutils sail <args>                - Command via proxy nfutils
 sail <args>                        - directly add into rc files while doing lara-init
 nfutils update                     - Update nfutils from GitHub
@@ -56,4 +53,4 @@ Installer otomatis menambahkan pelengkap otomatis:
 - Zsh: `~/.zsh/completions/_nfutils` (sertakan `fpath` dan `compinit` di `.zshrc`).
 Reload shell (atau `source` file rc) setelah instal supaya saran perintah aktif.
 
-Saat menjalankan `nfutils lara-init`, alias `sail` otomatis ditambahkan ke profil shell sehingga kamu bisa menjalankan `sail up` langsung.
+Saat menjalankan `nfutils laravel init`, alias `sail` otomatis ditambahkan ke profil shell sehingga kamu bisa menjalankan `sail up` langsung. Alih-alih memenuhi `.zshrc`, alias Sail ditempatkan dalam blok completion nfutils sehingga `nfutils uninstall` bisa membersihkannya otomatis.
