@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-10-27T21:52:40-g25239fb"
+NF_VERSION="v2025-10-28T03:11:20-gdffae09"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -32,11 +32,63 @@ ensure_rc_file() {
 ensure_bashrc() { ensure_rc_file "$BASHRC"; }
 ensure_zshrc() { ensure_rc_file "$ZSHRC"; }
 
+ensure_spacing_before_append() {
+  local file="$1"
+  [ -s "$file" ] || return 0
+  if [ "$(tail -c1 "$file" 2>/dev/null)" != $'\n' ]; then
+    printf '\n' >> "$file"
+  fi
+  local last_line
+  last_line=$(tail -n1 "$file")
+  if [ -n "$last_line" ]; then
+    printf '\n' >> "$file"
+  fi
+}
+
+ensure_line_block_spacing() {
+  local file="$1"
+  local line="$2"
+  [ -f "$file" ] || return 0
+  local tmp
+  tmp=$(mktemp)
+  if awk -v target="$line" '
+    BEGIN { prev_blank=1; changed=0 }
+    {
+      if ($0 == target) {
+        if (!prev_blank) {
+          print ""
+          prev_blank=1
+          changed=1
+        }
+        print $0
+        prev_blank=0
+      } else {
+        print $0
+        prev_blank = ($0 == "") ? 1 : 0
+      }
+    }
+    END { exit(changed ? 0 : 1) }
+  ' "$file" > "$tmp"; then
+    mv "$tmp" "$file"
+  else
+    rm -f "$tmp"
+  fi
+}
+
 append_unique_line() {
   local file="$1"
   local line="$2"
+  local spacing="${3:-with_spacing}"
   ensure_rc_file "$file"
-  grep -Fxq "$line" "$file" || printf '%s\n' "$line" >> "$file"
+  if ! grep -Fxq "$line" "$file"; then
+    if [ "$spacing" = "with_spacing" ]; then
+      ensure_spacing_before_append "$file"
+    fi
+    printf '%s\n' "$line" >> "$file"
+  fi
+  if [ "$spacing" = "with_spacing" ]; then
+    ensure_line_block_spacing "$file" "$line"
+  fi
 }
 
 strip_line_from_file() {
@@ -200,7 +252,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-10-27T21:52:40-g25239fb"
+NF_VERSION="v2025-10-28T03:11:20-gdffae09"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -223,11 +275,63 @@ ensure_rc_file() {
 ensure_bashrc() { ensure_rc_file "$BASHRC"; }
 ensure_zshrc() { ensure_rc_file "$ZSHRC"; }
 
+ensure_spacing_before_append() {
+  local file="$1"
+  [ -s "$file" ] || return 0
+  if [ "$(tail -c1 "$file" 2>/dev/null)" != $'\n' ]; then
+    printf '\n' >> "$file"
+  fi
+  local last_line
+  last_line=$(tail -n1 "$file")
+  if [ -n "$last_line" ]; then
+    printf '\n' >> "$file"
+  fi
+}
+
+ensure_line_block_spacing() {
+  local file="$1"
+  local line="$2"
+  [ -f "$file" ] || return 0
+  local tmp
+  tmp=$(mktemp)
+  if awk -v target="$line" '
+    BEGIN { prev_blank=1; changed=0 }
+    {
+      if ($0 == target) {
+        if (!prev_blank) {
+          print ""
+          prev_blank=1
+          changed=1
+        }
+        print $0
+        prev_blank=0
+      } else {
+        print $0
+        prev_blank = ($0 == "") ? 1 : 0
+      }
+    }
+    END { exit(changed ? 0 : 1) }
+  ' "$file" > "$tmp"; then
+    mv "$tmp" "$file"
+  else
+    rm -f "$tmp"
+  fi
+}
+
 append_unique_line() {
   local file="$1"
   local line="$2"
+  local spacing="${3:-with_spacing}"
   ensure_rc_file "$file"
-  grep -Fxq "$line" "$file" || printf '%s\n' "$line" >> "$file"
+  if ! grep -Fxq "$line" "$file"; then
+    if [ "$spacing" = "with_spacing" ]; then
+      ensure_spacing_before_append "$file"
+    fi
+    printf '%s\n' "$line" >> "$file"
+  fi
+  if [ "$spacing" = "with_spacing" ]; then
+    ensure_line_block_spacing "$file" "$line"
+  fi
 }
 
 has_cmd() {
@@ -373,29 +477,31 @@ show_help() {
   echo "Usage: nfutils <command> [options]"
   echo ""
   echo "Commands:"
-  echo "  lara-create <project>      - Create new Laravel project"
-  echo "  lara-init [-p PORT]        - Initialize Sail in existing project"
+  echo "  laravel create <dir|.>     - Create new Laravel project"
+  echo "  laravel init [-p PORT]     - Initialize Sail in existing project"
   echo "  composer <args>            - Run Composer in Docker"
-  echo "  dock-kill                  - Stop all running containers"
-  echo "  dock-rm                    - Remove all containers"
-  echo "  dock-destroy               - Stop & remove all containers"
-  echo "  dock-nuke                  - Destroy ALL containers, images, volumes, networks"
   echo "  destroyer                  - ⚠️ Delete all files in current dir"
   echo "  sail <args>                - Proxy to ./vendor/bin/sail"
   echo "  update                     - Update nfutils from GitHub"
   echo "  uninstall                  - Remove nfutils from your system"
   echo "  version / -v               - Show nfutils version"
-  echo "  help                       - Show this help message"
   echo ""
 }
 # --- Laravel Tools ---
-laravel_init() {
+laravel_create() {
   ensure_docker
+  local target="${1:-}"
+  if [ -z "$target" ]; then
+    echo "$(red "❌ Project directory is required (use '.' for current directory).")"
+    laravel_show_usage
+    exit 1
+  fi
+  shift || true
   docker run --rm -u "$(id -u):$(id -g)" \
     -v "$(pwd):/app" \
     -v composer_cache:/tmp/cache \
     -e COMPOSER_CACHE_DIR=/tmp/cache \
-    composer create-project laravel/laravel "$@"
+    composer create-project laravel/laravel "$target" "$@"
 }
 
 laravel_sail() {
@@ -523,12 +629,46 @@ PY
   echo "Now you can run: sail up"
 }
 
+laravel_show_usage() {
+  echo "Usage:"
+  echo "  nfutils laravel create <directory|.>"
+  echo "  nfutils laravel init [-p PORT] [sail options]"
+}
+
+laravel_cmd() {
+  local subcommand="${1:-}"
+  shift || true
+
+  case "$subcommand" in
+    create)
+      local target="${1:-}"
+      if [ -z "$target" ]; then
+        echo "$(red "❌ Project directory is required for 'laravel create'.")"
+        laravel_show_usage
+        exit 1
+      fi
+      laravel_create "$@"
+      ;;
+    init)
+      laravel_sail "$@"
+      ;;
+    ""|-h|--help|help)
+      laravel_show_usage
+      ;;
+    *)
+      echo "$(red "❌ Unknown laravel subcommand: $subcommand")"
+      laravel_show_usage
+      exit 1
+      ;;
+  esac
+}
+
 sail_cmd() {
   ensure_docker
 
   if [ ! -f "./vendor/bin/sail" ]; then
     echo "$(red "❌ Laravel Sail is not installed (vendor/bin/sail missing).")"
-    echo "Run: nfutils lara-init"
+    echo "Run: nfutils laravel init"
     exit 1
   fi
   if [ ! -x "./vendor/bin/sail" ]; then
@@ -540,38 +680,7 @@ sail_cmd() {
     ./vendor/bin/sail "$@"
   fi
 }
-
-# --- Docker Tools ---
-docker_kill() {
-  ensure_docker
-  docker ps -q | xargs -r docker stop
-}
-
-docker_rm() {
-  ensure_docker
-  docker ps -a -q | xargs -r docker rm
-}
-
-docker_destroy() {
-  ensure_docker
-  docker ps -a -q | xargs -r docker stop
-  docker ps -a -q | xargs -r docker rm
-}
-
 # --- Dangerous Operations ---
-docker_nuke() {
-  ensure_docker
-  echo "$(red "⚠️  This will stop running and delete ALL containers, images, volumes, and networks!")"
-  read -p "Are you sure? (y/N): " ans
-  [[ "$ans" == "y" ]] || { echo "Aborted."; exit 0; }
-  docker ps -a -q | xargs -r docker stop
-  docker ps -a -q | xargs -r docker rm
-  docker images -q | xargs -r docker rmi
-  docker volume ls -q | xargs -r docker volume rm
-  docker network ls -q | grep -v "bridge\|host\|none" | xargs -r docker network rm
-  echo "$(green "✅ Docker fully nuked.")"
-}
-
 destroyer() {
   read -p "⚠️  Delete ALL files in current directory? (y/N): " ans
   [[ "$ans" == "y" ]] || { echo "Aborted."; exit 0; }
@@ -626,24 +735,19 @@ nfutils_update() {
 }
 
 case "$1" in
-  lara-create) shift; laravel_init "$@";;
-  lara-init) shift; laravel_sail "$@";;
+  laravel) shift; laravel_cmd "$@";;
   composer) shift; composer_cmd "$@";;
-  dock-kill) docker_kill;;
-  dock-rm) docker_rm;;
-  dock-destroy) docker_destroy;;
-  dock-nuke) docker_nuke;;
   destroyer) destroyer;;
   uninstall) nfutils_uninstall;;
   update) nfutils_update;;
   sail) shift; sail_cmd "$@";;
   version|-v) echo "nfutils $NF_VERSION";;
-  help|"") show_help;;
+  "") show_help;;
   *) echo "$(red "Unknown command: $1")"; show_help;;
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-10-27T21:52:40-g25239fb|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-10-28T03:11:20-gdffae09|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
@@ -670,24 +774,68 @@ mkdir -p "$ZSH_COMPLETION_DIR"
 cat > "$NF_COMPLETION" <<'EOC'
 # nfutils bash completion
 _nfutils_completions() {
-  local cur prev opts
+  local cur prev cmd subcmd
   COMPREPLY=()
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
+  cmd="${COMP_WORDS[1]:-}"
 
-  # subcommands
-  opts="help version update uninstall destroyer composer sail lara-create lara-init dock-kill dock-rm dock-destroy dock-nuke destroyer"
+  local top_commands="version update uninstall destroyer composer sail laravel"
 
-  case "${prev}" in
+  if [ $COMP_CWORD -le 1 ]; then
+    COMPREPLY=( $(compgen -W "${top_commands}" -- "${cur}") )
+    return 0
+  fi
+
+  case "${cmd}" in
     sail)
-      COMPREPLY=( $(compgen -W "up down restart stop build ps" -- ${cur}) )
+      COMPREPLY=( $(compgen -W "up down restart stop build ps" -- "${cur}") )
       return 0
       ;;
-    *)
-      COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    laravel)
+      if [ $COMP_CWORD -eq 2 ]; then
+        COMPREPLY=( $(compgen -W "create init help" -- "${cur}") )
+        return 0
+      fi
+      subcmd="${COMP_WORDS[2]:-}"
+      case "${subcmd}" in
+        create)
+          if [ $COMP_CWORD -eq 3 ]; then
+            local suggestions=()
+            if [[ "." == "$cur"* ]]; then
+              suggestions+=(".")
+            fi
+            while IFS= read -r line; do
+              suggestions+=("$line")
+            done < <(compgen -d -- "${cur}")
+            COMPREPLY=("${suggestions[@]}")
+            if type compopt >/dev/null 2>&1; then
+              compopt -o dirnames 2>/dev/null
+            fi
+          fi
+          return 0
+          ;;
+        init)
+          if [[ "$prev" == "-p" || "$prev" == "--port" ]]; then
+            COMPREPLY=()
+            return 0
+          fi
+          if [ $COMP_CWORD -eq 3 ]; then
+            COMPREPLY=( $(compgen -W "-p --port" -- "${cur}") )
+            return 0
+          fi
+          return 0
+          ;;
+        help|"")
+          COMPREPLY=()
+          return 0
+          ;;
+      esac
       return 0
       ;;
   esac
+
+  COMPREPLY=( $(compgen -W "${top_commands}" -- "${cur}") )
 }
 complete -F _nfutils_completions nfutils
 
@@ -701,7 +849,7 @@ _nfutils() {
   typeset -A opt_args
 
   local -a top_commands
-  top_commands=(help version update uninstall destroyer composer sail lara-create lara-init dock-kill dock-rm dock-destroy dock-nuke destroyer)
+  top_commands=(version update uninstall destroyer composer sail laravel)
 
   _arguments -C \
     '1:command:->command' \
@@ -718,6 +866,24 @@ _nfutils() {
           local -a sail_sub
           sail_sub=(up down restart stop build ps)
           _describe -t sail_subcommands 'sail subcommands' sail_sub
+          ;;
+        laravel)
+          if (( CURRENT == 3 )); then
+            local -a laravel_sub
+            laravel_sub=(create init help)
+            _describe -t laravel_subcommands 'laravel subcommands' laravel_sub
+          else
+            case ${words[3]} in
+              init)
+                _values 'laravel init options' \
+                  '-p[set custom Sail port]' \
+                  '--port=[set custom Sail port]'
+                ;;
+              create)
+                _files -/
+                ;;
+            esac
+          fi
           ;;
       esac
       ;;
@@ -738,6 +904,7 @@ fi
 if [ -f "$ZSH_COMPLETION_PATH" ]; then
   ensure_zshrc
   strip_block_between_markers "$ZSHRC" "# nfutils zsh completion start" "# nfutils zsh completion end"
+  ensure_spacing_before_append "$ZSHRC"
   cat >> "$ZSHRC" <<'EOZ'
 # nfutils zsh completion start
 fpath=("$HOME/.zsh/completions" $fpath)
