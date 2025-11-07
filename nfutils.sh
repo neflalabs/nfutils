@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-11-08T02:02:48-gac1fdaf"
+NF_VERSION="v2025-11-08T02:18:09-g149a458"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -31,6 +31,13 @@ ensure_rc_file() {
 
 ensure_bashrc() { ensure_rc_file "$BASHRC"; }
 ensure_zshrc() { ensure_rc_file "$ZSHRC"; }
+
+cache_busted_url() {
+  local base="$1"
+  local sep="?"
+  [[ "$base" == *\?* ]] && sep="&"
+  printf "%s%scb=%s" "$base" "$sep" "$(date +%s%N)"
+}
 
 ensure_spacing_before_append() {
   local file="$1"
@@ -206,7 +213,9 @@ uninstall_nfutils() {
 update_nfutils() {
   echo ""
   bold "🔍 Checking for updates..."
-  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep 'NF_VERSION="v' | cut -d'"' -f2 | pick_latest_version)
+  local version_url
+  version_url=$(cache_busted_url "$NF_REPO_URL")
+  LATEST_VERSION=$(curl -s "$version_url" | grep 'NF_VERSION="v' | cut -d'"' -f2 | pick_latest_version)
 
   if [ -z "$LATEST_VERSION" ]; then
     echo "$(red "❌ Failed to check version (network or GitHub issue).")"
@@ -218,7 +227,9 @@ update_nfutils() {
     read -p "Update now? (y/N): " ans
     if [ "$ans" = "y" ]; then
       echo "$(yellow "⬇️ Downloading and installing new version...")"
-      curl -s "$NF_REPO_URL" | bash
+      local install_url
+      install_url=$(cache_busted_url "$NF_REPO_URL")
+      curl -s "$install_url" | bash
       echo "$(green "✅ nfutils updated to $LATEST_VERSION")"
       exit 0
     else
@@ -251,7 +262,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-11-08T02:02:48-gac1fdaf"
+NF_VERSION="v2025-11-08T02:18:09-g149a458"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -273,6 +284,13 @@ ensure_rc_file() {
 
 ensure_bashrc() { ensure_rc_file "$BASHRC"; }
 ensure_zshrc() { ensure_rc_file "$ZSHRC"; }
+
+cache_busted_url() {
+  local base="$1"
+  local sep="?"
+  [[ "$base" == *\?* ]] && sep="&"
+  printf "%s%scb=%s" "$base" "$sep" "$(date +%s%N)"
+}
 
 ensure_spacing_before_append() {
   local file="$1"
@@ -716,14 +734,18 @@ nfutils_uninstall() {
 
 nfutils_update() {
   echo "$(yellow "🔍 Checking for updates...")"
-  LATEST_VERSION=$(curl -s "$NF_REPO_URL" | grep 'NF_VERSION="v' | cut -d'"' -f2 | pick_latest_version)
+  local version_url
+  version_url=$(cache_busted_url "$NF_REPO_URL")
+  LATEST_VERSION=$(curl -s "$version_url" | grep 'NF_VERSION="v' | cut -d'"' -f2 | pick_latest_version)
   if [ -z "$LATEST_VERSION" ]; then
     echo "$(red "❌ Unable to check version.")"
     exit 1
   fi
   if version_newer "$LATEST_VERSION" "$NF_VERSION"; then
     echo "$(yellow "📦 New version available:") $LATEST_VERSION"
-    curl -s "$NF_REPO_URL" | bash
+    local install_url
+    install_url=$(cache_busted_url "$NF_REPO_URL")
+    curl -s "$install_url" | bash
     echo "$(green "✅ Updated to $LATEST_VERSION")"
     exit 0
   elif version_newer "$NF_VERSION" "$LATEST_VERSION"; then
@@ -732,7 +754,6 @@ nfutils_update() {
     echo "$(green "✅ Already up-to-date ($NF_VERSION)")"
   fi
 }
-
 case "$1" in
   laravel) shift; laravel_cmd "$@";;
   composer) shift; composer_cmd "$@";;
@@ -746,7 +767,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-11-08T02:02:48-gac1fdaf|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-11-08T02:18:09-g149a458|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
