@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-11-08T04:04:14-ge549c8d"
+NF_VERSION="v2025-11-08T04:15:09-g6330bc9"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -37,6 +37,24 @@ cache_busted_url() {
   local sep="?"
   [[ "$base" == *\?* ]] && sep="&"
   printf "%s%scb=%s" "$base" "$sep" "$(date +%s%N)"
+}
+
+reload_current_shell_rc() {
+  local rc=""
+  if [ -n "${ZSH_VERSION:-}" ]; then
+    rc="$ZSHRC"
+  elif [ -n "${BASH_VERSION:-}" ]; then
+    rc="$BASHRC"
+  else
+    case "$(basename "${SHELL:-}")" in
+      zsh) rc="$ZSHRC" ;;
+      bash) rc="$BASHRC" ;;
+    esac
+  fi
+  if [ -n "$rc" ] && [ -f "$rc" ]; then
+    # shellcheck disable=SC1090
+    . "$rc"
+  fi
 }
 
 ensure_spacing_before_append() {
@@ -230,6 +248,7 @@ update_nfutils() {
       local install_url
       install_url=$(cache_busted_url "$NF_REPO_URL")
       curl -s "$install_url" | bash
+      reload_current_shell_rc
       echo "$(green "✅ nfutils updated to $LATEST_VERSION")"
       exit 0
     else
@@ -262,7 +281,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-11-08T04:04:14-ge549c8d"
+NF_VERSION="v2025-11-08T04:15:09-g6330bc9"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -290,6 +309,24 @@ cache_busted_url() {
   local sep="?"
   [[ "$base" == *\?* ]] && sep="&"
   printf "%s%scb=%s" "$base" "$sep" "$(date +%s%N)"
+}
+
+reload_current_shell_rc() {
+  local rc=""
+  if [ -n "${ZSH_VERSION:-}" ]; then
+    rc="$ZSHRC"
+  elif [ -n "${BASH_VERSION:-}" ]; then
+    rc="$BASHRC"
+  else
+    case "$(basename "${SHELL:-}")" in
+      zsh) rc="$ZSHRC" ;;
+      bash) rc="$BASHRC" ;;
+    esac
+  fi
+  if [ -n "$rc" ] && [ -f "$rc" ]; then
+    # shellcheck disable=SC1090
+    . "$rc"
+  fi
 }
 
 ensure_spacing_before_append() {
@@ -757,6 +794,7 @@ nfutils_update() {
     local install_url
     install_url=$(cache_busted_url "$NF_REPO_URL")
     curl -s "$install_url" | bash
+    reload_current_shell_rc
     echo "$(green "✅ Updated to $LATEST_VERSION")"
     exit 0
   elif version_newer "$NF_VERSION" "$LATEST_VERSION"; then
@@ -778,7 +816,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-11-08T04:04:14-ge549c8d|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-11-08T04:15:09-g6330bc9|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
