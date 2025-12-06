@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-12-06T23:03:33-gc4e019b"
+NF_VERSION="v2025-12-06T23:22:31-gfc5fefb"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -281,7 +281,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-12-06T23:03:33-gc4e019b"
+NF_VERSION="v2025-12-06T23:22:31-gfc5fefb"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -531,14 +531,14 @@ show_help() {
   echo "Usage: nfutils <command> [options]"
   echo ""
   echo "Commands:"
-  echo "  laravel create <dir|.>           - Create new Laravel project"
-  echo "  laravel init [-p PORT] [-db DB]  - Initialize Sail in existing project"
-  echo "  composer <args>                  - Run Composer in Docker"
-  echo "  destroyer                        - ⚠️ Delete all files in current dir"
-  echo "  nuke                             - ☢️  Stop Docker, remove containers/images, wipe folder"
-  echo "  update                           - Update nfutils from GitHub"
-  echo "  uninstall                        - Remove nfutils from your system"
-  echo "  version / -v                     - Show nfutils version"
+  echo "  laravel create <dir|.>                      - Create new Laravel project"
+  echo "  laravel init [-p PORT] [-db|--database DB]  - Initialize Sail in existing project"
+  echo "  composer <args>                             - Run Composer in Docker"
+  echo "  destroyer                                   - ⚠️ Delete all files in current dir"
+  echo "  nuke                                        - ☢️  Stop Docker, remove containers/images, wipe folder"
+  echo "  update                                      - Update nfutils from GitHub"
+  echo "  uninstall                                   - Remove nfutils from your system"
+  echo "  version / -v                                - Show nfutils version"
   echo ""
 }
 # --- Laravel Tools ---
@@ -587,25 +587,26 @@ laravel_sail() {
           exit 1
         fi
         ;;
-      -db|--db)
+      -db|--db|--database)
         local value="${2:-}"
         if [[ -n "$value" && "$value" =~ ^(mysql|pgsql|sqlite)$ ]]; then
           db="$value"
           shift 2
           continue
         else
-          echo "$(red "❌ Invalid database driver for -db/--db (use mysql|pgsql|sqlite).")"
+          echo "$(red "❌ Invalid database driver for -db/--database (use mysql|pgsql|sqlite).")"
           exit 1
         fi
         ;;
-      --db=*)
+      --db=*|--database=*)
         local value="${1#--db=}"
+        value="${value#--database=}"
         if [[ "$value" =~ ^(mysql|pgsql|sqlite)$ ]]; then
           db="$value"
           shift
           continue
         else
-          echo "$(red "❌ Invalid database driver for --db (use mysql|pgsql|sqlite).")"
+          echo "$(red "❌ Invalid database driver for --database (use mysql|pgsql|sqlite).")"
           exit 1
         fi
         ;;
@@ -804,7 +805,7 @@ PY
 laravel_show_usage() {
   echo "Usage:"
   echo "  nfutils laravel create <directory|.>"
-  echo "  nfutils laravel init [-p PORT] [-db mysql|pgsql|sqlite] [sail options]"
+  echo "  nfutils laravel init [-p PORT] [-db|--database mysql|pgsql|sqlite] [sail options]"
 }
 
 laravel_cmd() {
@@ -922,6 +923,12 @@ nfutils_update() {
     echo "$(green "✅ Already up-to-date ($NF_VERSION)")"
   fi
 }
+
+nfutils_version() {
+  echo "nfutils $NF_VERSION"
+  echo "Author : Nefla"
+  echo "Repo   : https://github.com/neflalabs/nfutils"
+}
 case "$1" in
   laravel) shift; laravel_cmd "$@";;
   composer) shift; composer_cmd "$@";;
@@ -929,13 +936,13 @@ case "$1" in
   nuke) nuke_everything;;
   uninstall) nfutils_uninstall;;
   update) nfutils_update;;
-  version|-v) echo "nfutils $NF_VERSION";;
+  version|-v) nfutils_version;;
   "") show_help;;
   *) echo "$(red "Unknown command: $1")"; show_help;;
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-12-06T23:03:33-gc4e019b|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-06T23:22:31-gfc5fefb|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
@@ -1005,12 +1012,12 @@ _nfutils_completions() {
             COMPREPLY=()
             return 0
           fi
-          if [[ "$prev" == "-db" || "$prev" == "--db" ]]; then
+          if [[ "$prev" == "-db" || "$prev" == "--db" || "$prev" == "--database" ]]; then
             COMPREPLY=( $(compgen -W "mysql pgsql sqlite" -- "${cur}") )
             return 0
           fi
           if [ $COMP_CWORD -eq 3 ]; then
-            COMPREPLY=( $(compgen -W "-p --port -db --db" -- "${cur}") )
+            COMPREPLY=( $(compgen -W "-p --port -db --database" -- "${cur}") )
             return 0
           fi
           return 0
@@ -1052,9 +1059,9 @@ _nfutils() {
         init|'')
           _values 'laravel init options' \
             '-p[set custom Sail port]' \
-            '--port=[set custom Sail port]' \
+            '--port[set custom Sail port]' \
             '-db[set database driver]:driver:(mysql pgsql sqlite)' \
-            '--db=[set database driver]:driver:(mysql pgsql sqlite)'
+            '--database[set database driver]:driver:(mysql pgsql sqlite)'
           ;;
       esac
       ;;
