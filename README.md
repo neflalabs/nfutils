@@ -1,55 +1,60 @@
 # nfutils
 
-Script utilitas berbasis Shell bukan ~~Pertaminya~~ untuk membantu workflow pengembangan Laravel menggunakan Docker yang juga bisa menggunakan [CodeSpace](https://github.com/codespaces) sebagai lingkungan pengembangannya. tapi ngga pake CodeSpace juga gapapa. terserah kamu asal jangan make powershell.
+Small bash utility for Laravel + Docker workflows (works locally or in Codespaces). Designed for bash/zsh; avoids PowerShell.
 
 ---
 
-### Fitur Utama
-- Instalasi skrip `nfutils` ke `$HOME/bin` lengkap dengan auto-completion (bash & zsh).
-- Manajemen proyek Laravel: `laravel create` untuk bootstrap proyek baru dan `laravel init` untuk setup Sail + alias `sail`.
-- Shortcut perintah Composer di dalam container Docker secara transparan.
-- Perintah pembersihan: `destroyer` untuk mengosongkan direktori saat ini, dan `nuke` (double-confirm) untuk mematikan Docker, menghapus container/image/volume/network, lalu menghapus isi direktori aktif.
-- Dukungan pembaruan (`nfutils update`) dan pencopotan (`nfutils uninstall`) langsung dari CLI.
+### Features
+- Install the `nfutils` CLI into `$HOME/bin` with bash/zsh auto-completion.
+- Laravel helpers: `laravel create` to bootstrap a project in Docker, `laravel init` to install Sail and wire an alias `sail`.
+- Composer passthrough that runs inside Docker.
+- Cleanup commands: `destroyer` wipes the current directory; `nuke` stops Docker, removes containers/images/volumes/networks, then wipes the current directory (double confirmation).
+- Self-manage: `nfutils update` and `nfutils uninstall`.
 
-### Prasyarat
-- Pastikan Docker terpasang dan daemon berjalan. `nfutils` akan menghentikan eksekusi dan menampilkan instruksi instalasi jika Docker/Compose belum tersedia
+### Prerequisites
+- Docker CLI and daemon running; Docker Compose plugin available.
+- `bash` or `zsh` if you want completions.
+- `python3` available (used to update `.env` and compose files during `laravel init`).
 
-### Cara Instalasi
-Download file `nfutils.sh` / atau kamu bisa copy ini :
-
+### Install
+Download and run the installer:
 ```
 curl -s https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh | bash
 ```
+Then reload your shell: `source ~/.zshrc` or `source ~/.bashrc`.
+
 ---
-### Cara Menggunakan
-Pastikan setelah install baik download file ./nfutils.sh atau via curl sebaiknya kamu melakukan sourcing ke shell.rc kamu. dengan cara `source ~/.zshrc` atau `source ~/.bashrc`
 
-
+### Usage
 ```
-nfutils laravel create <dir|.>                         - Create new Laravel project (di dalam Docker)
+nfutils laravel create <dir|.>                         - Create new Laravel project inside Docker
 nfutils laravel init [-p PORT] [-db|--database DRIVER] - Install Laravel Sail + alias `sail`
-nfutils composer <args>            - Run Composer in Docker
-nfutils destroyer                  - Delete all files in current dir ⚠️
-nfutils nuke                       - ☢️ Stop Docker, remove containers/images/volumes/networks, delete current dir (2x confirm)
-sail <args>                        - directly add into rc files while doing lara-init
-nfutils update                     - Update nfutils from GitHub
-nfutils uninstall                  - Remove nfutils from your system
-nfutils version / -v               - Show nfutils version
-nfutils help                       - Show this help message
+nfutils composer <args>                                - Run Composer in Docker
+nfutils destroyer                                      - Delete all files in current dir ⚠️
+nfutils nuke                                           - ☢️ Stop Docker, remove containers/images/volumes/networks, delete current dir (2x confirm)
+nfutils update                                         - Update nfutils from GitHub
+nfutils uninstall                                      - Remove nfutils from your system
+nfutils version / -v                                   - Show nfutils version + author/repo
+nfutils help                                           - Show this help message
 ```
----
+
+`laravel init` details:
+- `-p/--port` sets `APP_PORT` in `.env`.
+- `-db/--database mysql|pgsql|sqlite` updates `.env` DB_* values and toggles DB services in your compose file (`compose.yaml` preferred; falls back to compose.yml/docker-compose.*). The selected DB service is enabled; the others are commented out and removed from `depends_on`.
+- Sail alias `sail` is added to your shell profile automatically.
+
+After running `laravel init`, start containers with `sail up -d`.
 
 ---
 
-### Pembaruan & Status
-`nfutils` akan menarik skrip terbaru dari GitHub. Pastikan koneksi internet tersedia saat menjalankan `nfutils update`. Penomoran versi menggunakan stempel waktu + git commit contohnya `v2025-10-27T21:52:40-g25239fb`. script ini masih akan terus dikembangkan, dan masih belum tau kedepannya bakal seperti apa.
+### Updates & Status
+`nfutils update` pulls the latest script from GitHub. Versioning uses a timestamp + git commit (e.g., `v2025-10-27T21:52:40-g25239fb`).
 
 ---
 
 ### Auto-completion
-Installer otomatis menambahkan pelengkap otomatis:
-- Bash: `~/.bash_completion.d/nfutils`.
-- Zsh: `~/.zsh/completions/_nfutils` (sertakan `fpath` dan `compinit` di `.zshrc`).
-Reload shell (atau `source` file rc) setelah instal supaya saran perintah aktif.
+Installer adds completions:
+- Bash: `~/.bash_completion.d/nfutils`
+- Zsh: `~/.zsh/completions/_nfutils` (ensure `fpath` + `compinit` in `.zshrc`)
 
-Saat menjalankan `nfutils laravel init`, alias `sail` otomatis ditambahkan ke profil shell sehingga kamu bisa menjalankan `sail up` langsung. Alih-alih memenuhi `.zshrc`, alias Sail ditempatkan dalam blok completion nfutils sehingga `nfutils uninstall` bisa membersihkannya otomatis.
+Reload your shell or `source` your rc file to activate completions. Sail alias lives in the nfutils completion block so `nfutils uninstall` cleans it up automatically.
