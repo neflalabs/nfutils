@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-12-06T23:44:44-g0ce26d2"
+NF_VERSION="v2025-12-06T23:48:41-g0153c96"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -281,7 +281,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-12-06T23:44:44-g0ce26d2"
+NF_VERSION="v2025-12-06T23:48:41-g0153c96"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -801,14 +801,22 @@ PY
     echo "$(yellow "ℹ .env tidak ditemukan, DB_* tidak diubah.")"
   fi
 
-  if [ -f "docker-compose.yml" ]; then
-    python3 - "$db" <<'PY'
+  local compose_file=""
+  for file in compose.yaml compose.yml docker-compose.yaml docker-compose.yml; do
+    if [ -f "$file" ]; then
+      compose_file="$file"
+      break
+    fi
+  done
+
+  if [ -n "$compose_file" ]; then
+    python3 - "$db" "$compose_file" <<'PY'
 import sys
 import re
 from pathlib import Path
 
 target = sys.argv[1]
-compose = Path("docker-compose.yml")
+compose = Path(sys.argv[2])
 lines = compose.read_text().splitlines()
 
 def match_service(line, name):
@@ -885,11 +893,11 @@ for name in disable:
 compose.write_text("\n".join(new_lines) + "\n")
 PY
     if [ "$db" = "mysql" ]; then
-      echo "$(green "✅ docker-compose.yml: service mysql diaktifkan, pgsql dinonaktifkan.")"
+      echo "$(green "✅ $compose_file: service mysql diaktifkan, pgsql dinonaktifkan.")"
     elif [ "$db" = "pgsql" ]; then
-      echo "$(green "✅ docker-compose.yml: service pgsql diaktifkan, mysql dinonaktifkan.")"
+      echo "$(green "✅ $compose_file: service pgsql diaktifkan, mysql dinonaktifkan.")"
     else
-      echo "$(green "✅ docker-compose.yml: service mysql & pgsql dinonaktifkan untuk sqlite.")"
+      echo "$(green "✅ $compose_file: service mysql & pgsql dinonaktifkan untuk sqlite.")"
     fi
   fi
   echo "Now you can run: sail up"
@@ -1035,7 +1043,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-12-06T23:44:44-g0ce26d2|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-06T23:48:41-g0153c96|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
