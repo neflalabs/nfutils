@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-12-06T23:53:35-g74e8e61"
+NF_VERSION="v2025-12-07T00:01:07-g00ecf8e"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -281,7 +281,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-12-06T23:53:35-g74e8e61"
+NF_VERSION="v2025-12-07T00:01:07-g00ecf8e"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -872,48 +872,65 @@ def toggle_block(lines, name, enable):
             i += 1
     return out
 
-def toggle_depends(lines, name, enable):
+def adjust_depends(lines, enable_set, disable_set):
     out = []
-    in_depends = False
-    depends_indent = 0
-
-    def comment_line(line):
-        if not line.strip():
-            return line
-        if line.lstrip().startswith("#"):
-            return line
-        space = re.match(r'^(\s*)', line).group(1)
-        body = line[len(space):]
-        return f"{space}# {body}"
-
-    def uncomment_line(line):
-        space = re.match(r'^(\s*)', line).group(1)
-        body = line[len(space):]
-        if body.startswith("#"):
-            body = body[1:]
-            if body.startswith(" "):
-                body = body[1:]
-            return f"{space}{body}"
-        return line
-
-    for line in lines:
-        if re.match(r'^\s*depends_on:\s*$', line):
-            in_depends = True
-            depends_indent = len(re.match(r'^(\s*)', line).group(1))
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        m = re.match(r'^(\s*)depends_on:\s*$', line)
+        if not m:
             out.append(line)
+            i += 1
             continue
 
-        if in_depends:
-            indent = len(re.match(r'^(\s*)', line).group(1))
-            if indent <= depends_indent and line.strip():
-                in_depends = False
+        block_indent = len(m.group(1))
+        block = [line]
+        i += 1
+        while i < len(lines):
+            indent = len(re.match(r'^(\s*)', lines[i]).group(1))
+            if indent <= block_indent and lines[i].strip():
+                break
+            block.append(lines[i])
+            i += 1
 
-        if in_depends:
-            if re.match(r'^\s*-\s*' + re.escape(name) + r'\s*($|#)', line) or re.match(r'^\s*' + re.escape(name) + r':\s*$', line):
-                out.append(uncomment_line(line) if enable else comment_line(line))
+        def parse_items(block_lines):
+            items = []
+            for bl in block_lines[1:]:
+                mm = re.match(r'^\s*-\s*([A-Za-z0-9_.-]+)\s*(#.*)?$', bl)
+                if mm:
+                    items.append((bl, mm.group(1), "list"))
+                    continue
+                mm = re.match(r'^\s*([A-Za-z0-9_.-]+):\s*(#.*)?$', bl)
+                if mm and len(re.match(r'^(\s*)', bl).group(1)) > block_indent:
+                    items.append((bl, mm.group(1), "map"))
+            return items
+
+        items = parse_items(block)
+        keep_lines = []
+        for original, name, kind in items:
+            if name in disable_set:
                 continue
+            keep_lines.append(name)
 
-        out.append(line)
+        if not keep_lines:
+            # drop entire depends_on block
+            continue
+
+        new_block = [block[0]]
+        for original, name, kind in items:
+            if name in disable_set:
+                continue
+            if kind == "list":
+                new_block.append(re.sub(r'^(\s*)#?\s*-\s*([A-Za-z0-9_.-]+)', r'\1- ' + name, original))
+            else:
+                new_block.append(re.sub(r'^(\s*)#?\s*([A-Za-z0-9_.-]+):', r'\1' + name + ':', original))
+        # keep other non-item lines (comments/blank)
+        for bl in block[1:]:
+            if any(bl is itm[0] for itm in items):
+                continue
+            new_block.append(bl)
+
+        out.extend(new_block)
 
     return out
 
@@ -932,10 +949,9 @@ else:  # sqlite
 new_lines = lines
 for name in enable:
     new_lines = toggle_block(new_lines, name, True)
-    new_lines = toggle_depends(new_lines, name, True)
 for name in disable:
     new_lines = toggle_block(new_lines, name, False)
-    new_lines = toggle_depends(new_lines, name, False)
+new_lines = adjust_depends(new_lines, set(enable), set(disable))
 
 compose.write_text("\n".join(new_lines) + "\n")
 PY
@@ -1090,7 +1106,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-12-06T23:53:35-g74e8e61|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-07T00:01:07-g00ecf8e|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
