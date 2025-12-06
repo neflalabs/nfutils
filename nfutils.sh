@@ -5,7 +5,7 @@
 # Author: NeflaLabs
 # =========================================================
 
-set -e
+set -eo pipefail
 
 NF_DIR="$HOME/bin"
 NF_PATH="$NF_DIR/nfutils"
@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-12-07T00:01:07-g00ecf8e"
+NF_VERSION="v2025-12-07T00:16:44-gd816019"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -233,10 +233,17 @@ update_nfutils() {
   bold "🔍 Checking for updates..."
   local version_url
   version_url=$(cache_busted_url "$NF_REPO_URL")
-  LATEST_VERSION=$(curl -s "$version_url" | grep 'NF_VERSION="v' | cut -d'"' -f2 | pick_latest_version)
+  
+  local remote_script
+  if ! remote_script=$(curl -fsSL "$version_url" 2>/dev/null); then
+    echo "$(red "❌ Failed to check version (network or GitHub issue).")"
+    exit 1
+  fi
+  
+  LATEST_VERSION=$(echo "$remote_script" | grep 'NF_VERSION="v' | cut -d'"' -f2 | pick_latest_version)
 
   if [ -z "$LATEST_VERSION" ]; then
-    echo "$(red "❌ Failed to check version (network or GitHub issue).")"
+    echo "$(red "❌ Failed to parse version from remote script.")"
     exit 1
   fi
 
@@ -247,7 +254,11 @@ update_nfutils() {
       echo "$(yellow "⬇️ Downloading and installing new version...")"
       local install_url
       install_url=$(cache_busted_url "$NF_REPO_URL")
-      curl -s "$install_url" | bash
+      if ! update_script=$(curl -fsSL "$install_url" 2>/dev/null); then
+        echo "$(red "❌ Download failed. Check your network connection.")"
+        exit 1
+      fi
+      echo "$update_script" | bash
       reload_current_shell_rc
       echo "$(green "✅ nfutils updated to $LATEST_VERSION")"
       exit 0
@@ -279,9 +290,9 @@ bold "🧰 Installing nfutils $NF_VERSION ..."
 mkdir -p "$NF_DIR"
 cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
-set -e
+set -eo pipefail
 
-NF_VERSION="v2025-12-07T00:01:07-g00ecf8e"
+NF_VERSION="v2025-12-07T00:16:44-gd816019"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -412,11 +423,11 @@ docker_install_hint() {
         echo "  sudo zypper install docker docker-compose"
         ;;
       *)
-        echo "  (lihat dokumentasi resmi Docker untuk distro $ID)"
+        echo "  (see official Docker documentation for $ID)"
         ;;
     esac
   else
-    echo "  (lihat dokumentasi resmi Docker untuk instruksi instalasi)"
+    echo "  (see official Docker documentation for installation)"
   fi
 }
 
@@ -426,27 +437,55 @@ has_docker_compose() {
 
 ensure_docker() {
   if ! has_cmd docker; then
-    echo "$(red "❌ Docker CLI tidak ditemukan.")"
-    echo "Install Docker menggunakan perintah seperti:"
+    echo "$(red "❌ Docker CLI not found.")"
+    echo "Install Docker using a command like:"
     docker_install_hint
-    echo "Dokumentasi: https://docs.docker.com/engine/install/"
+    echo "Documentation: https://docs.docker.com/engine/install/"
     exit 1
   fi
 
   if ! docker info >/dev/null 2>&1; then
-    echo "$(red "❌ Docker daemon tidak berjalan.")"
-    echo "Pastikan layanan Docker aktif, contoh: sudo systemctl start docker"
+    echo "$(red "❌ Docker daemon is not running.")"
+    echo "Make sure Docker service is active, e.g.: sudo systemctl start docker"
     exit 1
   fi
 
   if ! has_docker_compose; then
-    echo "$(red "❌ Docker Compose tidak tersedia.")"
-    echo "Install plugin docker compose (docker compose) atau docker-compose CLI."
+    echo "$(red "❌ Docker Compose is not available.")"
+    echo "Install docker compose plugin (docker compose) or docker-compose CLI."
     exit 1
   fi
 
   if ! id -Gn "$USER" | tr ' ' '\n' | grep -qx docker; then
-    echo "$(yellow "ℹ Tambahkan user ke grup docker agar tidak perlu sudo: sudo usermod -aG docker $USER")"
+    echo "$(yellow "ℹ Add user to docker group to avoid sudo: sudo usermod -aG docker $USER")"
+  fi
+}
+
+ensure_python() {
+  if ! has_cmd python3; then
+    echo "$(red "❌ python3 is required for database configuration.")"
+    echo "Install with:"
+    if [ -f /etc/os-release ]; then
+      # shellcheck disable=SC1091
+      . /etc/os-release
+      case "$ID" in
+        ubuntu|debian)
+          echo "  sudo apt-get install python3"
+          ;;
+        arch|manjaro)
+          echo "  sudo pacman -S python"
+          ;;
+        fedora)
+          echo "  sudo dnf install python3"
+          ;;
+        *)
+          echo "  (use your distro's package manager)"
+          ;;
+      esac
+    else
+      echo "  (install python3 using your package manager)"
+    fi
+    exit 1
   fi
 }
 
@@ -560,6 +599,7 @@ laravel_create() {
 
 laravel_sail() {
   ensure_docker
+  ensure_python
 
   local port=""
   local sail_args=()
@@ -657,7 +697,7 @@ laravel_sail() {
   echo "$(green "✅ Laravel Sail installed successfully!")"
   local alias_line="alias sail='sh \$([ -f sail ] && echo sail || echo vendor/bin/sail)'"
   append_unique_line "$BASHRC" "$alias_line"
-  echo "$(green "✅ Alias 'sail' tersedia di shell profile (bash & zsh).")"
+  echo "$(green "✅ Alias 'sail' is now available in your shell profile (bash & zsh).")"
   if [ -f ".env" ]; then
     python3 - <<'PY_ENV'
 from pathlib import Path
@@ -713,14 +753,14 @@ if not inserted:
     out.append(f"APP_PORT={port}")
 env_path.write_text("\n".join(out) + "\n")
 PY
-    echo "$(green "✅ APP_PORT=$port ditulis ke .env")"
+    echo "$(green "✅ APP_PORT=$port written to .env")"
   elif [ -n "$port" ]; then
-    echo "$(yellow "ℹ .env tidak ditemukan, APP_PORT tidak diubah.")"
+    echo "$(yellow "ℹ .env not found, APP_PORT not changed.")"
   fi
 
   if [ ! -f ".env" ] && [ -f ".env.example" ]; then
     cp ".env.example" ".env"
-    echo "$(yellow "ℹ .env tidak ada, disalin dari .env.example")"
+    echo "$(yellow "ℹ .env not found, copied from .env.example")"
   fi
 
   local sqlite_path=""
@@ -791,14 +831,14 @@ for key, value in updates.items():
 
 env_path.write_text("\n".join(out) + "\n")
 PY
-    echo "$(green "✅ Database driver diset ke $db di .env")"
+    echo "$(green "✅ Database driver set to $db in .env")"
     if [ "$db" = "pgsql" ]; then
-      echo "$(yellow "ℹ Pastikan opsi Sail menyertakan service pgsql (otomatis ditambahkan).")"
+      echo "$(yellow "ℹ Ensure Sail options include pgsql service (auto-added).")"
     elif [ "$db" = "sqlite" ]; then
-      echo "$(yellow "ℹ Menggunakan file SQLite di ${sqlite_path:-database/database.sqlite}.")"
+      echo "$(yellow "ℹ Using SQLite file at ${sqlite_path:-database/database.sqlite}.")"
     fi
   else
-    echo "$(yellow "ℹ .env tidak ditemukan, DB_* tidak diubah.")"
+    echo "$(yellow "ℹ .env not found, DB_* not changed.")"
   fi
 
   local compose_file=""
@@ -956,11 +996,11 @@ new_lines = adjust_depends(new_lines, set(enable), set(disable))
 compose.write_text("\n".join(new_lines) + "\n")
 PY
     if [ "$db" = "mysql" ]; then
-      echo "$(green "✅ $compose_file: service mysql diaktifkan, pgsql dinonaktifkan.")"
+      echo "$(green "✅ $compose_file: mysql service enabled, pgsql disabled.")"
     elif [ "$db" = "pgsql" ]; then
-      echo "$(green "✅ $compose_file: service pgsql diaktifkan, mysql dinonaktifkan.")"
+      echo "$(green "✅ $compose_file: pgsql service enabled, mysql disabled.")"
     else
-      echo "$(green "✅ $compose_file: service mysql & pgsql dinonaktifkan untuk sqlite.")"
+      echo "$(green "✅ $compose_file: mysql & pgsql services disabled for sqlite.")"
     fi
   fi
   echo "Now you can run: sail up"
@@ -1068,21 +1108,32 @@ nfutils_update() {
   echo "$(yellow "🔍 Checking for updates...")"
   local version_url
   version_url=$(cache_busted_url "$NF_REPO_URL")
-  LATEST_VERSION=$(curl -s "$version_url" | grep 'NF_VERSION="v' | cut -d'"' -f2 | pick_latest_version)
+  
+  local remote_script
+  if ! remote_script=$(curl -fsSL "$version_url" 2>/dev/null); then
+    echo "$(red "❌ Unable to check version. Network error or GitHub unreachable.")"
+    exit 1
+  fi
+  
+  LATEST_VERSION=$(echo "$remote_script" | grep 'NF_VERSION="v' | cut -d'"' -f2 | pick_latest_version)
   if [ -z "$LATEST_VERSION" ]; then
-    echo "$(red "❌ Unable to check version.")"
+    echo "$(red "❌ Unable to parse version from remote script.")"
     exit 1
   fi
   if version_newer "$LATEST_VERSION" "$NF_VERSION"; then
     echo "$(yellow "📦 New version available:") $LATEST_VERSION"
     local install_url
     install_url=$(cache_busted_url "$NF_REPO_URL")
-    curl -s "$install_url" | bash
+    if ! update_script=$(curl -fsSL "$install_url" 2>/dev/null); then
+      echo "$(red "❌ Download failed. Check your network connection.")"
+      exit 1
+    fi
+    echo "$update_script" | bash
     reload_current_shell_rc
     echo "$(green "✅ Updated to $LATEST_VERSION")"
     exit 0
   elif version_newer "$NF_VERSION" "$LATEST_VERSION"; then
-    echo "$(green "✅ Anda sudah di depan (local $NF_VERSION, remote $LATEST_VERSION)")"
+    echo "$(green "✅ You are ahead (local $NF_VERSION, remote $LATEST_VERSION)")"
   else
     echo "$(green "✅ Already up-to-date ($NF_VERSION)")"
   fi
@@ -1106,7 +1157,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-12-07T00:01:07-g00ecf8e|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-07T00:16:44-gd816019|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
@@ -1236,7 +1287,7 @@ _nfutils "$@"
 
 EOZ
 
-# aktifkan langsung
+# activate immediately
 if [ -f "$NF_COMPLETION" ]; then
   ensure_bashrc
   append_unique_line "$BASHRC" "source $NF_COMPLETION"
