@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-12-06T23:22:31-gfc5fefb"
+NF_VERSION="v2025-12-06T23:44:44-g0ce26d2"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -281,7 +281,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-12-06T23:22:31-gfc5fefb"
+NF_VERSION="v2025-12-06T23:44:44-g0ce26d2"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -734,6 +734,7 @@ PY
     python3 - "$db" "$sqlite_path" <<'PY'
 import sys
 from pathlib import Path
+import re
 
 driver = sys.argv[1]
 sqlite_path = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -798,6 +799,98 @@ PY
     fi
   else
     echo "$(yellow "ℹ .env tidak ditemukan, DB_* tidak diubah.")"
+  fi
+
+  if [ -f "docker-compose.yml" ]; then
+    python3 - "$db" <<'PY'
+import sys
+import re
+from pathlib import Path
+
+target = sys.argv[1]
+compose = Path("docker-compose.yml")
+lines = compose.read_text().splitlines()
+
+def match_service(line, name):
+    m = re.match(r'^(\s*)(#\s*)?([A-Za-z0-9_.-]+):\s*$', line)
+    if not m:
+        return None
+    if m.group(3) != name:
+        return None
+    indent = len(m.group(1))
+    return indent
+
+def toggle_block(lines, name, enable):
+    out = []
+    i = 0
+    while i < len(lines):
+        indent = match_service(lines[i], name)
+        if indent is None:
+            out.append(lines[i])
+            i += 1
+            continue
+
+        def comment_line(line):
+            if not line.strip():
+                return line
+            if line.lstrip().startswith("#"):
+                return line
+            space = re.match(r'^(\s*)', line).group(1)
+            body = line[len(space):]
+            return f"{space}# {body}"
+
+        def uncomment_line(line):
+            space = re.match(r'^(\s*)', line).group(1)
+            body = line[len(space):]
+            if body.startswith("#"):
+                body = body[1:]
+                if body.startswith(" "):
+                    body = body[1:]
+                return f"{space}{body}"
+            return line
+
+        def is_new_block(line):
+            m = re.match(r'^(\s*)(#\s*)?([A-Za-z0-9_.-]+):\s*$', line)
+            if not m:
+                return False
+            return len(m.group(1)) <= indent
+
+        # process current service line
+        out.append(uncomment_line(lines[i]) if enable else comment_line(lines[i]))
+        i += 1
+        # process its block
+        while i < len(lines) and not is_new_block(lines[i]):
+            out.append(uncomment_line(lines[i]) if enable else comment_line(lines[i]))
+            i += 1
+    return out
+
+enable = []
+disable = []
+if target == "mysql":
+    enable = ["mysql"]
+    disable = ["pgsql"]
+elif target == "pgsql":
+    enable = ["pgsql"]
+    disable = ["mysql"]
+else:  # sqlite
+    enable = []
+    disable = ["mysql", "pgsql"]
+
+new_lines = lines
+for name in enable:
+    new_lines = toggle_block(new_lines, name, True)
+for name in disable:
+    new_lines = toggle_block(new_lines, name, False)
+
+compose.write_text("\n".join(new_lines) + "\n")
+PY
+    if [ "$db" = "mysql" ]; then
+      echo "$(green "✅ docker-compose.yml: service mysql diaktifkan, pgsql dinonaktifkan.")"
+    elif [ "$db" = "pgsql" ]; then
+      echo "$(green "✅ docker-compose.yml: service pgsql diaktifkan, mysql dinonaktifkan.")"
+    else
+      echo "$(green "✅ docker-compose.yml: service mysql & pgsql dinonaktifkan untuk sqlite.")"
+    fi
   fi
   echo "Now you can run: sail up"
 }
@@ -942,7 +1035,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-12-06T23:22:31-gfc5fefb|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-06T23:44:44-g0ce26d2|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
