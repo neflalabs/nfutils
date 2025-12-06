@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-11-08T04:15:09-g6330bc9"
+NF_VERSION="v2025-11-08T04:19:25-g93d2817"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -281,7 +281,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-11-08T04:15:09-g6330bc9"
+NF_VERSION="v2025-11-08T04:19:25-g93d2817"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -534,6 +534,7 @@ show_help() {
   echo "  laravel create <dir|.>     - Create new Laravel project"
   echo "  laravel init [-p PORT]     - Initialize Sail in existing project"
   echo "  composer <args>            - Run Composer in Docker"
+  echo "  db <mysql|pgsql|sqlite>    - Update .env DB_* values for chosen driver"
   echo "  destroyer                  - ⚠️ Delete all files in current dir"
   echo "  nuke                       - ☢️  Stop Docker, remove containers/images, wipe folder"
   echo "  update                     - Update nfutils from GitHub"
@@ -752,6 +753,117 @@ nuke_everything() {
 
   echo "$(green "✅ nfutils nuke completed. Directory wiped clean.")"
 }
+# --- Database switcher ---
+db_show_usage() {
+  echo "Usage:"
+  echo "  nfutils db <mysql|pgsql|sqlite>"
+}
+
+db_cmd() {
+  local driver="${1:-}"
+  case "$driver" in
+    mysql|pgsql|sqlite) ;;
+    ""|-h|--help|help)
+      db_show_usage
+      return 0
+      ;;
+    *)
+      echo "$(red "❌ Unknown database target: $driver")"
+      db_show_usage
+      exit 1
+      ;;
+  esac
+
+  if [ ! -f ".env" ]; then
+    if [ -f ".env.example" ]; then
+      cp ".env.example" ".env"
+      echo "$(yellow "ℹ .env tidak ada, disalin dari .env.example")"
+    else
+      echo "$(red "❌ File .env tidak ditemukan dan .env.example juga tidak ada.")"
+      exit 1
+    fi
+  fi
+
+  local sqlite_path=""
+  if [ "$driver" = "sqlite" ]; then
+    mkdir -p database
+    sqlite_path="database/database.sqlite"
+    [ -f "$sqlite_path" ] || touch "$sqlite_path"
+  fi
+
+  python3 - "$driver" "$sqlite_path" <<'PY'
+import sys
+from pathlib import Path
+
+driver = sys.argv[1]
+sqlite_path = sys.argv[2] if len(sys.argv) > 2 else ""
+
+env_path = Path(".env")
+lines = env_path.read_text().splitlines()
+
+updates = {
+    "mysql": {
+        "DB_CONNECTION": "mysql",
+        "DB_HOST": "mysql",
+        "DB_PORT": "3306",
+        "DB_DATABASE": "laravel",
+        "DB_USERNAME": "sail",
+        "DB_PASSWORD": "password",
+        "DB_SCHEMA": "",
+    },
+    "pgsql": {
+        "DB_CONNECTION": "pgsql",
+        "DB_HOST": "pgsql",
+        "DB_PORT": "5432",
+        "DB_DATABASE": "laravel",
+        "DB_USERNAME": "sail",
+        "DB_PASSWORD": "password",
+        "DB_SCHEMA": "public",
+    },
+    "sqlite": {
+        "DB_CONNECTION": "sqlite",
+        "DB_HOST": "",
+        "DB_PORT": "",
+        "DB_DATABASE": sqlite_path or "database/database.sqlite",
+        "DB_USERNAME": "",
+        "DB_PASSWORD": "",
+        "DB_SCHEMA": "",
+    },
+}[driver]
+
+prefixes = tuple(f"{key}=" for key in updates)
+seen = set()
+out = []
+for line in lines:
+    if line.startswith(prefixes):
+        key = line.split("=", 1)[0]
+        if key in seen:
+            continue
+        out.append(f"{key}={updates[key]}")
+        seen.add(key)
+    else:
+        out.append(line)
+
+for key, value in updates.items():
+    if key not in seen:
+        out.append(f"{key}={value}")
+
+env_path.write_text("\n".join(out) + "\n")
+PY
+
+  echo "$(green "✅ Database driver switched to $driver")"
+  case "$driver" in
+    mysql)
+      echo "$(yellow "ℹ Menggunakan konfigurasi default Sail untuk MySQL (host=mysql, user=sail, password=password).")"
+      ;;
+    pgsql)
+      echo "$(yellow "ℹ Pastikan layanan PostgreSQL tersedia (contoh: Sail install dengan '--with=pgsql').")"
+      ;;
+    sqlite)
+      echo "$(yellow "ℹ Menggunakan file SQLite di ${sqlite_path:-database/database.sqlite}.")"
+      ;;
+  esac
+}
 # --- Composer in Docker ---
 composer_cmd() {
   ensure_docker
@@ -806,6 +918,7 @@ nfutils_update() {
 case "$1" in
   laravel) shift; laravel_cmd "$@";;
   composer) shift; composer_cmd "$@";;
+  db) shift; db_cmd "$@";;
   destroyer) destroyer;;
   nuke) nuke_everything;;
   uninstall) nfutils_uninstall;;
@@ -816,7 +929,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-11-08T04:15:09-g6330bc9|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-11-08T04:19:25-g93d2817|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
@@ -849,7 +962,7 @@ _nfutils_completions() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   cmd="${COMP_WORDS[1]:-}"
 
-  local top_commands="laravel composer destroyer nuke update uninstall version help"
+  local top_commands="laravel composer db destroyer nuke update uninstall version help"
   local laravel_subcommands="create init help"
 
   if [ $COMP_CWORD -eq 1 ]; then
@@ -858,6 +971,13 @@ _nfutils_completions() {
   fi
 
   case "${cmd}" in
+    db)
+      if [ $COMP_CWORD -eq 2 ]; then
+        COMPREPLY=( $(compgen -W "mysql pgsql sqlite" -- "${cur}") )
+        return 0
+      fi
+      return 0
+      ;;
     laravel)
       if [ $COMP_CWORD -eq 2 ]; then
         COMPREPLY=( $(compgen -W "${laravel_subcommands}" -- "${cur}") )
@@ -908,8 +1028,9 @@ cat > "$ZSH_COMPLETION_PATH" <<'EOZ'
 
 _nfutils() {
   local -a top_commands laravel_sub
-  top_commands=(laravel composer destroyer nuke update uninstall version help)
+  top_commands=(laravel composer db destroyer nuke update uninstall version help)
   laravel_sub=(create init help)
+  db_targets=(mysql pgsql sqlite)
 
   if (( CURRENT == 2 )); then
     _describe -t commands 'nfutils commands' top_commands
@@ -932,6 +1053,12 @@ _nfutils() {
             '--port=[set custom Sail port]'
           ;;
       esac
+      ;;
+    db)
+      if (( CURRENT == 3 )); then
+        _describe -t db_targets 'database drivers' db_targets
+        return
+      fi
       ;;
   esac
 }
