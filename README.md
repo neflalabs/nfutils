@@ -26,10 +26,9 @@ Pastikan setelah install baik download file ./nfutils.sh atau via curl sebaiknya
 
 
 ```
-nfutils laravel create <dir|.>     - Create new Laravel project (di dalam Docker)
-nfutils laravel init [-p PORT]     - Install Laravel Sail + alias `sail`
+nfutils laravel create <dir|.>              - Create new Laravel project (di dalam Docker)
+nfutils laravel init [-p PORT] [-db DRIVER] - Install Laravel Sail + alias `sail`
 nfutils composer <args>            - Run Composer in Docker
-nfutils db <mysql|pgsql|sqlite>    - Set DB_* values in .env to switch driver
 nfutils destroyer                  - Delete all files in current dir ⚠️
 nfutils nuke                       - ☢️ Stop Docker, remove containers/images/volumes/networks, delete current dir (2x confirm)
 sail <args>                        - directly add into rc files while doing lara-init

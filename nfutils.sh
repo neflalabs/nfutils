@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-11-08T04:19:25-g93d2817"
+NF_VERSION="v2025-12-06T23:03:33-gc4e019b"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -281,7 +281,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-11-08T04:19:25-g93d2817"
+NF_VERSION="v2025-12-06T23:03:33-gc4e019b"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -531,15 +531,14 @@ show_help() {
   echo "Usage: nfutils <command> [options]"
   echo ""
   echo "Commands:"
-  echo "  laravel create <dir|.>     - Create new Laravel project"
-  echo "  laravel init [-p PORT]     - Initialize Sail in existing project"
-  echo "  composer <args>            - Run Composer in Docker"
-  echo "  db <mysql|pgsql|sqlite>    - Update .env DB_* values for chosen driver"
-  echo "  destroyer                  - ⚠️ Delete all files in current dir"
-  echo "  nuke                       - ☢️  Stop Docker, remove containers/images, wipe folder"
-  echo "  update                     - Update nfutils from GitHub"
-  echo "  uninstall                  - Remove nfutils from your system"
-  echo "  version / -v               - Show nfutils version"
+  echo "  laravel create <dir|.>           - Create new Laravel project"
+  echo "  laravel init [-p PORT] [-db DB]  - Initialize Sail in existing project"
+  echo "  composer <args>                  - Run Composer in Docker"
+  echo "  destroyer                        - ⚠️ Delete all files in current dir"
+  echo "  nuke                             - ☢️  Stop Docker, remove containers/images, wipe folder"
+  echo "  update                           - Update nfutils from GitHub"
+  echo "  uninstall                        - Remove nfutils from your system"
+  echo "  version / -v                     - Show nfutils version"
   echo ""
 }
 # --- Laravel Tools ---
@@ -564,6 +563,7 @@ laravel_sail() {
 
   local port=""
   local sail_args=()
+  local db="mysql"
   while [ $# -gt 0 ]; do
     case "$1" in
       -p|--port)
@@ -587,6 +587,28 @@ laravel_sail() {
           exit 1
         fi
         ;;
+      -db|--db)
+        local value="${2:-}"
+        if [[ -n "$value" && "$value" =~ ^(mysql|pgsql|sqlite)$ ]]; then
+          db="$value"
+          shift 2
+          continue
+        else
+          echo "$(red "❌ Invalid database driver for -db/--db (use mysql|pgsql|sqlite).")"
+          exit 1
+        fi
+        ;;
+      --db=*)
+        local value="${1#--db=}"
+        if [[ "$value" =~ ^(mysql|pgsql|sqlite)$ ]]; then
+          db="$value"
+          shift
+          continue
+        else
+          echo "$(red "❌ Invalid database driver for --db (use mysql|pgsql|sqlite).")"
+          exit 1
+        fi
+        ;;
       --)
         shift
         sail_args+=("$@")
@@ -598,6 +620,20 @@ laravel_sail() {
         ;;
     esac
   done
+
+  if [ "$db" = "pgsql" ]; then
+    local has_pgsql="false"
+    for arg in "${sail_args[@]}"; do
+      if [[ "$arg" == --with=* && "$arg" == *pgsql* ]]; then
+        has_pgsql="true"
+        break
+      fi
+    done
+    if [ "$has_pgsql" != "true" ]; then
+      sail_args+=("--with=pgsql")
+    fi
+  fi
+
   set -- "${sail_args[@]}"
 
   if [ ! -f "artisan" ]; then
@@ -680,13 +716,95 @@ PY
   elif [ -n "$port" ]; then
     echo "$(yellow "ℹ .env tidak ditemukan, APP_PORT tidak diubah.")"
   fi
+
+  if [ ! -f ".env" ] && [ -f ".env.example" ]; then
+    cp ".env.example" ".env"
+    echo "$(yellow "ℹ .env tidak ada, disalin dari .env.example")"
+  fi
+
+  local sqlite_path=""
+  if [ "$db" = "sqlite" ]; then
+    mkdir -p database
+    sqlite_path="database/database.sqlite"
+    [ -f "$sqlite_path" ] || touch "$sqlite_path"
+  fi
+
+  if [ -f ".env" ]; then
+    python3 - "$db" "$sqlite_path" <<'PY'
+import sys
+from pathlib import Path
+
+driver = sys.argv[1]
+sqlite_path = sys.argv[2] if len(sys.argv) > 2 else ""
+
+env_path = Path(".env")
+lines = env_path.read_text().splitlines()
+
+updates = {
+    "mysql": {
+        "DB_CONNECTION": "mysql",
+        "DB_HOST": "mysql",
+        "DB_PORT": "3306",
+        "DB_DATABASE": "laravel",
+        "DB_USERNAME": "sail",
+        "DB_PASSWORD": "password",
+        "DB_SCHEMA": "",
+    },
+    "pgsql": {
+        "DB_CONNECTION": "pgsql",
+        "DB_HOST": "pgsql",
+        "DB_PORT": "5432",
+        "DB_DATABASE": "laravel",
+        "DB_USERNAME": "sail",
+        "DB_PASSWORD": "password",
+        "DB_SCHEMA": "public",
+    },
+    "sqlite": {
+        "DB_CONNECTION": "sqlite",
+        "DB_HOST": "",
+        "DB_PORT": "",
+        "DB_DATABASE": sqlite_path or "database/database.sqlite",
+        "DB_USERNAME": "",
+        "DB_PASSWORD": "",
+        "DB_SCHEMA": "",
+    },
+}[driver]
+
+prefixes = tuple(f"{key}=" for key in updates)
+seen = set()
+out = []
+for line in lines:
+    if line.startswith(prefixes):
+        key = line.split("=", 1)[0]
+        if key in seen:
+            continue
+        out.append(f"{key}={updates[key]}")
+        seen.add(key)
+    else:
+        out.append(line)
+
+for key, value in updates.items():
+    if key not in seen:
+        out.append(f"{key}={value}")
+
+env_path.write_text("\n".join(out) + "\n")
+PY
+    echo "$(green "✅ Database driver diset ke $db di .env")"
+    if [ "$db" = "pgsql" ]; then
+      echo "$(yellow "ℹ Pastikan opsi Sail menyertakan service pgsql (otomatis ditambahkan).")"
+    elif [ "$db" = "sqlite" ]; then
+      echo "$(yellow "ℹ Menggunakan file SQLite di ${sqlite_path:-database/database.sqlite}.")"
+    fi
+  else
+    echo "$(yellow "ℹ .env tidak ditemukan, DB_* tidak diubah.")"
+  fi
   echo "Now you can run: sail up"
 }
 
 laravel_show_usage() {
   echo "Usage:"
   echo "  nfutils laravel create <directory|.>"
-  echo "  nfutils laravel init [-p PORT] [sail options]"
+  echo "  nfutils laravel init [-p PORT] [-db mysql|pgsql|sqlite] [sail options]"
 }
 
 laravel_cmd() {
@@ -753,117 +871,6 @@ nuke_everything() {
 
   echo "$(green "✅ nfutils nuke completed. Directory wiped clean.")"
 }
-# --- Database switcher ---
-db_show_usage() {
-  echo "Usage:"
-  echo "  nfutils db <mysql|pgsql|sqlite>"
-}
-
-db_cmd() {
-  local driver="${1:-}"
-  case "$driver" in
-    mysql|pgsql|sqlite) ;;
-    ""|-h|--help|help)
-      db_show_usage
-      return 0
-      ;;
-    *)
-      echo "$(red "❌ Unknown database target: $driver")"
-      db_show_usage
-      exit 1
-      ;;
-  esac
-
-  if [ ! -f ".env" ]; then
-    if [ -f ".env.example" ]; then
-      cp ".env.example" ".env"
-      echo "$(yellow "ℹ .env tidak ada, disalin dari .env.example")"
-    else
-      echo "$(red "❌ File .env tidak ditemukan dan .env.example juga tidak ada.")"
-      exit 1
-    fi
-  fi
-
-  local sqlite_path=""
-  if [ "$driver" = "sqlite" ]; then
-    mkdir -p database
-    sqlite_path="database/database.sqlite"
-    [ -f "$sqlite_path" ] || touch "$sqlite_path"
-  fi
-
-  python3 - "$driver" "$sqlite_path" <<'PY'
-import sys
-from pathlib import Path
-
-driver = sys.argv[1]
-sqlite_path = sys.argv[2] if len(sys.argv) > 2 else ""
-
-env_path = Path(".env")
-lines = env_path.read_text().splitlines()
-
-updates = {
-    "mysql": {
-        "DB_CONNECTION": "mysql",
-        "DB_HOST": "mysql",
-        "DB_PORT": "3306",
-        "DB_DATABASE": "laravel",
-        "DB_USERNAME": "sail",
-        "DB_PASSWORD": "password",
-        "DB_SCHEMA": "",
-    },
-    "pgsql": {
-        "DB_CONNECTION": "pgsql",
-        "DB_HOST": "pgsql",
-        "DB_PORT": "5432",
-        "DB_DATABASE": "laravel",
-        "DB_USERNAME": "sail",
-        "DB_PASSWORD": "password",
-        "DB_SCHEMA": "public",
-    },
-    "sqlite": {
-        "DB_CONNECTION": "sqlite",
-        "DB_HOST": "",
-        "DB_PORT": "",
-        "DB_DATABASE": sqlite_path or "database/database.sqlite",
-        "DB_USERNAME": "",
-        "DB_PASSWORD": "",
-        "DB_SCHEMA": "",
-    },
-}[driver]
-
-prefixes = tuple(f"{key}=" for key in updates)
-seen = set()
-out = []
-for line in lines:
-    if line.startswith(prefixes):
-        key = line.split("=", 1)[0]
-        if key in seen:
-            continue
-        out.append(f"{key}={updates[key]}")
-        seen.add(key)
-    else:
-        out.append(line)
-
-for key, value in updates.items():
-    if key not in seen:
-        out.append(f"{key}={value}")
-
-env_path.write_text("\n".join(out) + "\n")
-PY
-
-  echo "$(green "✅ Database driver switched to $driver")"
-  case "$driver" in
-    mysql)
-      echo "$(yellow "ℹ Menggunakan konfigurasi default Sail untuk MySQL (host=mysql, user=sail, password=password).")"
-      ;;
-    pgsql)
-      echo "$(yellow "ℹ Pastikan layanan PostgreSQL tersedia (contoh: Sail install dengan '--with=pgsql').")"
-      ;;
-    sqlite)
-      echo "$(yellow "ℹ Menggunakan file SQLite di ${sqlite_path:-database/database.sqlite}.")"
-      ;;
-  esac
-}
 # --- Composer in Docker ---
 composer_cmd() {
   ensure_docker
@@ -918,7 +925,6 @@ nfutils_update() {
 case "$1" in
   laravel) shift; laravel_cmd "$@";;
   composer) shift; composer_cmd "$@";;
-  db) shift; db_cmd "$@";;
   destroyer) destroyer;;
   nuke) nuke_everything;;
   uninstall) nfutils_uninstall;;
@@ -929,7 +935,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-11-08T04:19:25-g93d2817|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-06T23:03:33-gc4e019b|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
@@ -962,7 +968,7 @@ _nfutils_completions() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   cmd="${COMP_WORDS[1]:-}"
 
-  local top_commands="laravel composer db destroyer nuke update uninstall version help"
+  local top_commands="laravel composer destroyer nuke update uninstall version help"
   local laravel_subcommands="create init help"
 
   if [ $COMP_CWORD -eq 1 ]; then
@@ -971,13 +977,6 @@ _nfutils_completions() {
   fi
 
   case "${cmd}" in
-    db)
-      if [ $COMP_CWORD -eq 2 ]; then
-        COMPREPLY=( $(compgen -W "mysql pgsql sqlite" -- "${cur}") )
-        return 0
-      fi
-      return 0
-      ;;
     laravel)
       if [ $COMP_CWORD -eq 2 ]; then
         COMPREPLY=( $(compgen -W "${laravel_subcommands}" -- "${cur}") )
@@ -1006,8 +1005,12 @@ _nfutils_completions() {
             COMPREPLY=()
             return 0
           fi
+          if [[ "$prev" == "-db" || "$prev" == "--db" ]]; then
+            COMPREPLY=( $(compgen -W "mysql pgsql sqlite" -- "${cur}") )
+            return 0
+          fi
           if [ $COMP_CWORD -eq 3 ]; then
-            COMPREPLY=( $(compgen -W "-p --port" -- "${cur}") )
+            COMPREPLY=( $(compgen -W "-p --port -db --db" -- "${cur}") )
             return 0
           fi
           return 0
@@ -1028,9 +1031,8 @@ cat > "$ZSH_COMPLETION_PATH" <<'EOZ'
 
 _nfutils() {
   local -a top_commands laravel_sub
-  top_commands=(laravel composer db destroyer nuke update uninstall version help)
+  top_commands=(laravel composer destroyer nuke update uninstall version help)
   laravel_sub=(create init help)
-  db_targets=(mysql pgsql sqlite)
 
   if (( CURRENT == 2 )); then
     _describe -t commands 'nfutils commands' top_commands
@@ -1050,15 +1052,11 @@ _nfutils() {
         init|'')
           _values 'laravel init options' \
             '-p[set custom Sail port]' \
-            '--port=[set custom Sail port]'
+            '--port=[set custom Sail port]' \
+            '-db[set database driver]:driver:(mysql pgsql sqlite)' \
+            '--db=[set database driver]:driver:(mysql pgsql sqlite)'
           ;;
       esac
-      ;;
-    db)
-      if (( CURRENT == 3 )); then
-        _describe -t db_targets 'database drivers' db_targets
-        return
-      fi
       ;;
   esac
 }
