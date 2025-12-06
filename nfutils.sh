@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-12-06T23:48:41-g0153c96"
+NF_VERSION="v2025-12-06T23:53:35-g74e8e61"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -281,7 +281,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-NF_VERSION="v2025-12-06T23:48:41-g0153c96"
+NF_VERSION="v2025-12-06T23:53:35-g74e8e61"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -872,6 +872,51 @@ def toggle_block(lines, name, enable):
             i += 1
     return out
 
+def toggle_depends(lines, name, enable):
+    out = []
+    in_depends = False
+    depends_indent = 0
+
+    def comment_line(line):
+        if not line.strip():
+            return line
+        if line.lstrip().startswith("#"):
+            return line
+        space = re.match(r'^(\s*)', line).group(1)
+        body = line[len(space):]
+        return f"{space}# {body}"
+
+    def uncomment_line(line):
+        space = re.match(r'^(\s*)', line).group(1)
+        body = line[len(space):]
+        if body.startswith("#"):
+            body = body[1:]
+            if body.startswith(" "):
+                body = body[1:]
+            return f"{space}{body}"
+        return line
+
+    for line in lines:
+        if re.match(r'^\s*depends_on:\s*$', line):
+            in_depends = True
+            depends_indent = len(re.match(r'^(\s*)', line).group(1))
+            out.append(line)
+            continue
+
+        if in_depends:
+            indent = len(re.match(r'^(\s*)', line).group(1))
+            if indent <= depends_indent and line.strip():
+                in_depends = False
+
+        if in_depends:
+            if re.match(r'^\s*-\s*' + re.escape(name) + r'\s*($|#)', line) or re.match(r'^\s*' + re.escape(name) + r':\s*$', line):
+                out.append(uncomment_line(line) if enable else comment_line(line))
+                continue
+
+        out.append(line)
+
+    return out
+
 enable = []
 disable = []
 if target == "mysql":
@@ -887,8 +932,10 @@ else:  # sqlite
 new_lines = lines
 for name in enable:
     new_lines = toggle_block(new_lines, name, True)
+    new_lines = toggle_depends(new_lines, name, True)
 for name in disable:
     new_lines = toggle_block(new_lines, name, False)
+    new_lines = toggle_depends(new_lines, name, False)
 
 compose.write_text("\n".join(new_lines) + "\n")
 PY
@@ -1043,7 +1090,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-12-06T23:48:41-g0153c96|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-06T23:53:35-g74e8e61|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
