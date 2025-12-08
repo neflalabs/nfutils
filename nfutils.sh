@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-12-07T03:46:25-gf1d34b2"
+NF_VERSION="v2025-12-08T23:29:48-g03613d3"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -336,7 +336,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -eo pipefail
 
-NF_VERSION="v2025-12-07T03:46:25-gf1d34b2"
+NF_VERSION="v2025-12-08T23:29:48-g03613d3"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -614,7 +614,7 @@ show_help() {
   echo "Usage: nfutils <command> [options]"
   echo ""
   echo "Commands:"
-  echo "  laravel create <dir|.>                      - Create new Laravel project"
+  echo "  laravel create <dir|.> [--composer]         - Create new Laravel project (installer default)"
   echo "  laravel init [-p PORT] [-db|--database DB]  - Initialize Sail in existing project"
   echo "  composer <args>                             - Run Composer in Docker"
   echo "  destroyer                                   - ⚠️ Delete all files in current dir"
@@ -625,6 +625,43 @@ show_help() {
   echo ""
 }
 # --- Laravel Tools ---
+
+laravel_create_with_composer() {
+  local target="$1"
+  shift || true
+  docker run --rm -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/app" \
+    -v composer_cache:/tmp/cache \
+    -e COMPOSER_CACHE_DIR=/tmp/cache \
+    -w /app \
+    composer create-project laravel/laravel "$target" "$@"
+}
+
+laravel_create_with_installer() {
+  local target="$1"
+  shift || true
+  local installer_args=("$@")
+  if [ "$target" = "." ]; then
+    installer_args+=("--force")
+  fi
+
+  docker run --rm -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/app" \
+    -v composer_cache:/tmp/cache \
+    -v laravel_installer_home:/tmp/.composer \
+    -e COMPOSER_CACHE_DIR=/tmp/cache \
+    -e COMPOSER_HOME=/tmp/.composer \
+    -w /app \
+    laravelsail/php84-composer:latest bash -s -- "$target" "${installer_args[@]}" <<'BASH'
+set -eo pipefail
+export PATH="/tmp/.composer/vendor/bin:$PATH"
+if ! command -v laravel >/dev/null 2>&1; then
+  composer global require laravel/installer --no-interaction --ansi
+fi
+laravel new "$@"
+BASH
+}
+
 laravel_create() {
   ensure_docker
   local target="${1:-}"
@@ -634,11 +671,28 @@ laravel_create() {
     exit 1
   fi
   shift || true
-  docker run --rm -u "$(id -u):$(id -g)" \
-    -v "$(pwd):/app" \
-    -v composer_cache:/tmp/cache \
-    -e COMPOSER_CACHE_DIR=/tmp/cache \
-    composer create-project laravel/laravel "$target" "$@"
+
+  local method="installer"
+  local create_args=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --composer) method="composer";;
+      --installer) method="installer";;
+      *)
+        create_args+=("$1")
+        ;;
+    esac
+    shift
+  done
+
+  if [ "$method" = "installer" ]; then
+    if laravel_create_with_installer "$target" "${create_args[@]}"; then
+      return 0
+    fi
+    echo "$(yellow "⚠️ Laravel installer failed, falling back to composer create-project...")"
+  fi
+
+  laravel_create_with_composer "$target" "${create_args[@]}"
 }
 
 laravel_sail() {
@@ -1052,7 +1106,7 @@ PY
 
 laravel_show_usage() {
   echo "Usage:"
-  echo "  nfutils laravel create <directory|.>"
+  echo "  nfutils laravel create <directory|.> [--composer|--installer] [installer options]"
   echo "  nfutils laravel init [-p PORT] [-db|--database mysql|pgsql|sqlite] [sail options]"
 }
 
@@ -1201,7 +1255,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-12-07T03:46:25-gf1d34b2|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-08T23:29:48-g03613d3|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"

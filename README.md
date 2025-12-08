@@ -42,7 +42,7 @@ source ~/.bashrc  # for bash
 ## Usage
 
 ```
-nfutils laravel create <dir|.>                         Create new Laravel project inside Docker
+nfutils laravel create <dir|.> [--composer]            Create new Laravel project (Laravel installer by default)
 nfutils laravel init [-p PORT] [-db|--database DRIVER] Install Laravel Sail + alias `sail`
 nfutils composer <args>                                Run Composer in Docker
 nfutils destroyer                                      Delete all files in current dir ⚠️
@@ -52,6 +52,11 @@ nfutils uninstall                                      Remove nfutils from your 
 nfutils version | -v                                   Show version + author/repo
 nfutils help                                           Show help message
 ```
+
+### laravel create
+
+- Uses the official Laravel Installer inside Docker by default; falls back to `composer create-project` if the installer fails.
+- Pass `--composer` to force the old flow, or `--installer` to force the installer and forward its options (e.g., `--git`, `--force`).
 
 ### laravel init Options
 
