@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v02"
+NF_VERSION="v2025-12-08T15:16:39Z-g03475c0-dirty"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -233,27 +233,6 @@ version_newer() {
   [[ "$(version_key "$1")" > "$(version_key "$2")" ]]
 }
 
-pick_latest_version() {
-  local latest="" line key
-  while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    if [[ "$line" =~ ^v([0-9]+)(\.[0-9]+){0,2}$ || "$line" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z)?(-g[0-9a-fA-F]+)?(-dirty)?$ ]]; then
-      :
-    else
-      continue
-    fi
-    key=$(version_key "$line") || continue
-    if [ -z "$latest" ] || version_newer "$line" "$latest"; then
-      latest="$line"
-    fi
-  done
-  if [ -n "$latest" ]; then
-    echo "$latest"
-  else
-    echo "v0.0.1"
-  fi
-}
-
 # ---------------------------------------------
 # UNINSTALL FUNCTION
 # ---------------------------------------------
@@ -296,45 +275,40 @@ uninstall_nfutils() {
 update_nfutils() {
   echo ""
   bold "🔍 Checking for updates..."
-  local version_url
-  version_url=$(cache_busted_url "$NF_REPO_URL")
-  
-  local remote_script
-  if ! remote_script=$(curl -fsSL "$version_url" 2>/dev/null); then
+  local tmp install_url remote_version ans
+  tmp=$(mktemp)
+  install_url=$(cache_busted_url "$NF_REPO_URL")
+  if ! curl -fsSL "$install_url" -o "$tmp" 2>/dev/null; then
+    rm -f "$tmp"
     echo "$(red "❌ Failed to check version (network or GitHub issue).")"
     exit 1
   fi
-  
-  LATEST_VERSION=$(echo "$remote_script" | grep 'NF_VERSION="v' | cut -d'"' -f2 | pick_latest_version)
-
-  if [ -z "$LATEST_VERSION" ]; then
+  remote_version=$(grep -m1 'NF_VERSION="v' "$tmp" | cut -d'"' -f2)
+  if [ -z "$remote_version" ]; then
+    rm -f "$tmp"
     echo "$(red "❌ Failed to parse version from remote script.")"
     exit 1
   fi
 
-  if version_newer "$LATEST_VERSION" "$NF_VERSION"; then
-    echo "$(yellow "📦 New version available:") $LATEST_VERSION (current: $NF_VERSION)"
+  if version_newer "$remote_version" "$NF_VERSION"; then
+    echo "$(yellow "📦 New version available:") $remote_version (current: $NF_VERSION)"
     read -p "Update now? (y/N): " ans
     if [ "$ans" = "y" ]; then
       echo "$(yellow "⬇️ Downloading and installing new version...")"
-      local install_url
-      install_url=$(cache_busted_url "$NF_REPO_URL")
-      if ! update_script=$(curl -fsSL "$install_url" 2>/dev/null); then
-        echo "$(red "❌ Download failed. Check your network connection.")"
-        exit 1
-      fi
-      echo "$update_script" | bash
+      bash "$tmp"
       reload_current_shell_rc
-      echo "$(green "✅ nfutils updated to $LATEST_VERSION")"
+      echo "$(green "✅ nfutils updated to $remote_version")"
+      rm -f "$tmp"
       exit 0
     else
       echo "Aborted."
     fi
-  elif version_newer "$NF_VERSION" "$LATEST_VERSION"; then
-    echo "$(green "✅ You are ahead (local $NF_VERSION, remote $LATEST_VERSION)")"
+  elif version_newer "$NF_VERSION" "$remote_version"; then
+    echo "$(green "✅ You are ahead (local $NF_VERSION, remote $remote_version)")"
   else
     echo "$(green "✅ You are already using the latest version ($NF_VERSION)")"
   fi
+  rm -f "$tmp"
   exit 0
 }
 
@@ -357,7 +331,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -eo pipefail
 
-NF_VERSION="v02"
+NF_VERSION="v2025-12-08T15:16:39Z-g03475c0-dirty"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -611,27 +585,6 @@ version_key() {
 
 version_newer() {
   [[ "$(version_key "$1")" > "$(version_key "$2")" ]]
-}
-
-pick_latest_version() {
-  local latest="" line key
-  while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    if [[ "$line" =~ ^v([0-9]+)(\.[0-9]+){0,2}$ || "$line" =~ ^v[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z)?(-g[0-9a-fA-F]+)?(-dirty)?$ ]]; then
-      :
-    else
-      continue
-    fi
-    key=$(version_key "$line") || continue
-    if [ -z "$latest" ] || version_newer "$line" "$latest"; then
-      latest="$line"
-    fi
-  done
-  if [ -n "$latest" ]; then
-    echo "$latest"
-  else
-    echo "v0.0.1"
-  fi
 }
 
 show_help() {
@@ -1178,37 +1131,33 @@ nfutils_uninstall() {
 
 nfutils_update() {
   echo "$(yellow "🔍 Checking for updates...")"
-  local version_url
-  version_url=$(cache_busted_url "$NF_REPO_URL")
-  
-  local remote_script
-  if ! remote_script=$(curl -fsSL "$version_url" 2>/dev/null); then
+  local tmp install_url remote_version
+  tmp=$(mktemp)
+  install_url=$(cache_busted_url "$NF_REPO_URL")
+  if ! curl -fsSL "$install_url" -o "$tmp" 2>/dev/null; then
+    rm -f "$tmp"
     echo "$(red "❌ Unable to check version. Network error or GitHub unreachable.")"
     exit 1
   fi
-  
-  LATEST_VERSION=$(echo "$remote_script" | grep 'NF_VERSION="v' | cut -d'"' -f2 | pick_latest_version)
-  if [ -z "$LATEST_VERSION" ]; then
+  remote_version=$(grep -m1 'NF_VERSION="v' "$tmp" | cut -d'"' -f2)
+  if [ -z "$remote_version" ]; then
+    rm -f "$tmp"
     echo "$(red "❌ Unable to parse version from remote script.")"
     exit 1
   fi
-  if version_newer "$LATEST_VERSION" "$NF_VERSION"; then
-    echo "$(yellow "📦 New version available:") $LATEST_VERSION"
-    local install_url
-    install_url=$(cache_busted_url "$NF_REPO_URL")
-    if ! update_script=$(curl -fsSL "$install_url" 2>/dev/null); then
-      echo "$(red "❌ Download failed. Check your network connection.")"
-      exit 1
-    fi
-    echo "$update_script" | bash
+  if version_newer "$remote_version" "$NF_VERSION"; then
+    echo "$(yellow "📦 New version available:") $remote_version"
+    bash "$tmp"
     reload_current_shell_rc
-    echo "$(green "✅ Updated to $LATEST_VERSION")"
+    echo "$(green "✅ Updated to $remote_version")"
+    rm -f "$tmp"
     exit 0
-  elif version_newer "$NF_VERSION" "$LATEST_VERSION"; then
-    echo "$(green "✅ You are ahead (local $NF_VERSION, remote $LATEST_VERSION)")"
+  elif version_newer "$NF_VERSION" "$remote_version"; then
+    echo "$(green "✅ You are ahead (local $NF_VERSION, remote $remote_version)")"
   else
     echo "$(green "✅ Already up-to-date ($NF_VERSION)")"
   fi
+  rm -f "$tmp"
 }
 
 nfutils_version() {
@@ -1229,7 +1178,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v02|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-08T15:16:39Z-g03475c0-dirty|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
