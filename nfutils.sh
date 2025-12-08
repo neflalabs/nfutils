@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-12-08T23:29:48-g03613d3"
+NF_VERSION="v2025-12-07T00:16:44-gd816019"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -336,7 +336,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -eo pipefail
 
-NF_VERSION="v2025-12-08T23:29:48-g03613d3"
+NF_VERSION="v2025-12-07T00:16:44-gd816019"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -629,29 +629,45 @@ show_help() {
 laravel_create_with_composer() {
   local target="$1"
   shift || true
+  local composer_args=("$@" "--no-interaction" "--ansi")
+  echo "$(yellow "🛠  Creating Laravel app via composer create-project...")"
   docker run --rm -u "$(id -u):$(id -g)" \
     -v "$(pwd):/app" \
     -v composer_cache:/tmp/cache \
     -e COMPOSER_CACHE_DIR=/tmp/cache \
     -w /app \
-    composer create-project laravel/laravel "$target" "$@"
+    composer create-project laravel/laravel "$target" "${composer_args[@]}"
 }
 
 laravel_create_with_installer() {
   local target="$1"
   shift || true
   local installer_args=("$@")
+  local docker_flags=(--rm -u "$(id -u):$(id -g)" -v "$(pwd):/app" -v composer_cache:/tmp/cache -v laravel_installer_home:/tmp/.composer -e COMPOSER_CACHE_DIR=/tmp/cache -e COMPOSER_HOME=/tmp/.composer -w /app)
+  local interactive="false"
+
+  if [ -t 0 ] && [ -t 1 ]; then
+    interactive="true"
+    docker_flags+=(-i -t)
+  fi
+
+  if [ "$interactive" = "true" ]; then
+    installer_args+=("--interactive")
+  else
+    installer_args+=("--no-interaction")
+  fi
+  installer_args+=("--ansi")
   if [ "$target" = "." ]; then
     installer_args+=("--force")
   fi
 
-  docker run --rm -u "$(id -u):$(id -g)" \
-    -v "$(pwd):/app" \
-    -v composer_cache:/tmp/cache \
-    -v laravel_installer_home:/tmp/.composer \
-    -e COMPOSER_CACHE_DIR=/tmp/cache \
-    -e COMPOSER_HOME=/tmp/.composer \
-    -w /app \
+  if [ "$interactive" = "true" ]; then
+    echo "$(yellow "🚀 Laravel Installer wizard (interactive) inside Docker...")"
+  else
+    echo "$(yellow "🚀 Creating Laravel app via Laravel Installer (non-interactive) inside Docker...")"
+  fi
+
+  docker run "${docker_flags[@]}" \
     laravelsail/php84-composer:latest bash -s -- "$target" "${installer_args[@]}" <<'BASH'
 set -eo pipefail
 export PATH="/tmp/.composer/vendor/bin:$PATH"
@@ -687,6 +703,7 @@ laravel_create() {
 
   if [ "$method" = "installer" ]; then
     if laravel_create_with_installer "$target" "${create_args[@]}"; then
+      echo "$(green "✅ Laravel app created with installer.")"
       return 0
     fi
     echo "$(yellow "⚠️ Laravel installer failed, falling back to composer create-project...")"
@@ -1255,7 +1272,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-12-08T23:29:48-g03613d3|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-07T00:16:44-gd816019|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"

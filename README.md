@@ -56,7 +56,8 @@ nfutils help                                           Show help message
 ### laravel create
 
 - Uses the official Laravel Installer inside Docker by default; falls back to `composer create-project` if the installer fails.
-- Pass `--composer` to force the old flow, or `--installer` to force the installer and forward its options (e.g., `--git`, `--force`).
+- If your terminal is interactive (TTY), the Installer wizard is shown (`--interactive`); otherwise it runs non-interactively.
+- Pass `--composer` to force the old flow, or `--installer` to force the installer and forward its options (e.g., `--git`, `--force`); non-interactive is still used when stdin/stdout are not TTYs.
 
 ### laravel init Options
 
