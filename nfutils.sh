@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-12-07T00:16:44-gd816019"
+NF_VERSION="v2025-12-07T03:46:25-gf1d34b2"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -54,6 +54,50 @@ reload_current_shell_rc() {
   if [ -n "$rc" ] && [ -f "$rc" ]; then
     # shellcheck disable=SC1090
     . "$rc"
+  fi
+}
+
+detect_shell_rc() {
+  local shell_name=""
+  if [ -n "${ZSH_VERSION:-}" ]; then
+    shell_name="zsh"
+  elif [ -n "${BASH_VERSION:-}" ]; then
+    shell_name="bash"
+  elif [ -n "${SHELL:-}" ]; then
+    shell_name="$(basename "$SHELL")"
+  fi
+  case "$shell_name" in
+    zsh) echo "$ZSHRC" ;;
+    bash) echo "$BASHRC" ;;
+  esac
+}
+
+prompt_source_rc() {
+  local rc_file ans human_path
+  rc_file=$(detect_shell_rc)
+  if [ -z "$rc_file" ]; then
+    echo "$(yellow "ℹ Could not detect your shell. Reload your shell manually (source ~/.bashrc or ~/.zshrc).")"
+    return
+  fi
+
+  human_path="~/${rc_file#$HOME/}"
+  if [ -t 0 ]; then
+    read -r -p "Source ${human_path} now to load nfutils? (y/N): " ans
+  elif [ -r /dev/tty ]; then
+    read -r -p "Source ${human_path} now to load nfutils? (y/N): " ans </dev/tty
+  else
+    echo "$(yellow "ℹ To load nfutils now, run: source ${human_path}")"
+    return
+  fi
+
+  if [[ "$ans" =~ ^[Yy]$ ]]; then
+    set +e
+    # shellcheck disable=SC1090
+    . "$rc_file"
+    set -e
+    echo "$(green "✅ Sourced ${human_path}")"
+  else
+    echo "Skipped. Run: source ${human_path}"
   fi
 }
 
@@ -292,7 +336,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -eo pipefail
 
-NF_VERSION="v2025-12-07T00:16:44-gd816019"
+NF_VERSION="v2025-12-07T03:46:25-gf1d34b2"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -1157,7 +1201,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-12-07T00:16:44-gd816019|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-07T03:46:25-gf1d34b2|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
@@ -1306,3 +1350,6 @@ autoload -Uz compinit && compinit
 # nfutils zsh completion end
 EOZ
 fi
+
+# Offer to reload the detected shell configuration
+prompt_source_rc
