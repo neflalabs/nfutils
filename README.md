@@ -88,7 +88,7 @@ Run `nfutils update` to pull the latest script from GitHub.
 
 Versioning uses timestamp + git commit format:
 ```
-v2025-12-07T00:16:44-gd816019
+v2024-06-04T12:34:56Z-gabc1234
 ```
 
 ---
