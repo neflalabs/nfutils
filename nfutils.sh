@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-12-08T15:04:35Z-g6721b38-dirty"
+NF_VERSION="v2025-12-08T15:06:30Z-ge3c3204"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -59,16 +59,30 @@ reload_current_shell_rc() {
 
 detect_shell_rc() {
   local shell_name=""
-  if [ -n "${ZSH_VERSION:-}" ]; then
+  if [[ "${SHELL:-}" == *"zsh"* ]]; then
+    shell_name="zsh"
+  elif [[ "${SHELL:-}" == *"bash"* ]]; then
+    shell_name="bash"
+  elif [ -n "${ZSH_VERSION:-}" ]; then
     shell_name="zsh"
   elif [ -n "${BASH_VERSION:-}" ]; then
     shell_name="bash"
-  elif [ -n "${SHELL:-}" ]; then
-    shell_name="$(basename "$SHELL")"
+  else
+    case "$(basename "${SHELL:-}")" in
+      zsh) shell_name="zsh" ;;
+      bash) shell_name="bash" ;;
+    esac
   fi
   case "$shell_name" in
     zsh) echo "$ZSHRC" ;;
     bash) echo "$BASHRC" ;;
+    *) 
+      if [ -f "$ZSHRC" ]; then
+        echo "$ZSHRC"
+      elif [ -f "$BASHRC" ]; then
+        echo "$BASHRC"
+      fi
+      ;;
   esac
 }
 
@@ -343,7 +357,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -eo pipefail
 
-NF_VERSION="v2025-12-08T15:04:35Z-g6721b38-dirty"
+NF_VERSION="v2025-12-08T15:06:30Z-ge3c3204"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -1215,7 +1229,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-12-08T15:04:35Z-g6721b38-dirty|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-08T15:06:30Z-ge3c3204|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
