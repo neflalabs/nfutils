@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-12-08T15:18:46Z-g96fd68b-dirty"
+NF_VERSION="v2025-12-08T15:23:05Z-gc9dfbaf-dirty"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -274,40 +274,20 @@ uninstall_nfutils() {
 # ---------------------------------------------
 update_nfutils() {
   echo ""
-  bold "🔍 Checking for updates..."
+  bold "🔍 Downloading latest nfutils..."
   local tmp install_url remote_version ans
   tmp=$(mktemp)
   install_url=$(cache_busted_url "$NF_REPO_URL")
   if ! curl -fsSL "$install_url" -o "$tmp" 2>/dev/null; then
     rm -f "$tmp"
-    echo "$(red "❌ Failed to check version (network or GitHub issue).")"
+    echo "$(red "❌ Failed to download nfutils (network or GitHub issue).")"
     exit 1
   fi
   remote_version=$(grep -m1 'NF_VERSION="v' "$tmp" | cut -d'"' -f2)
-  if [ -z "$remote_version" ]; then
-    rm -f "$tmp"
-    echo "$(red "❌ Failed to parse version from remote script.")"
-    exit 1
-  fi
-
-  if version_newer "$remote_version" "$NF_VERSION"; then
-    echo "$(yellow "📦 New version available:") $remote_version (current: $NF_VERSION)"
-    read -p "Update now? (y/N): " ans
-    if [ "$ans" = "y" ]; then
-      echo "$(yellow "⬇️ Downloading and installing new version...")"
-      bash "$tmp"
-      reload_current_shell_rc
-      echo "$(green "✅ nfutils updated to $remote_version")"
-      rm -f "$tmp"
-      exit 0
-    else
-      echo "Aborted."
-    fi
-  elif version_newer "$NF_VERSION" "$remote_version"; then
-    echo "$(green "✅ You are ahead (local $NF_VERSION, remote $remote_version)")"
-  else
-    echo "$(green "✅ You are already using the latest version ($NF_VERSION)")"
-  fi
+  echo "$(yellow "⬇️ Installing nfutils ${remote_version:-}...")"
+  bash "$tmp"
+  reload_current_shell_rc
+  echo "$(green "✅ nfutils updated to ${remote_version:-latest}")"
   rm -f "$tmp"
   exit 0
 }
@@ -331,7 +311,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -eo pipefail
 
-NF_VERSION="v2025-12-08T15:18:46Z-g96fd68b-dirty"
+NF_VERSION="v2025-12-08T15:23:05Z-gc9dfbaf-dirty"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -1130,34 +1110,26 @@ nfutils_uninstall() {
 }
 
 nfutils_update() {
-  echo "$(yellow "🔍 Checking for updates...")"
+  echo "$(yellow "🔍 Downloading latest nfutils...")"
   local tmp install_url remote_version
   tmp=$(mktemp)
   install_url=$(cache_busted_url "$NF_REPO_URL")
   if ! curl -fsSL "$install_url" -o "$tmp" 2>/dev/null; then
     rm -f "$tmp"
-    echo "$(red "❌ Unable to check version. Network error or GitHub unreachable.")"
+    echo "$(red "❌ Unable to download nfutils (network or GitHub issue).")"
     exit 1
   fi
   remote_version=$(grep -m1 'NF_VERSION="v' "$tmp" | cut -d'"' -f2)
-  if [ -z "$remote_version" ]; then
+  echo "$(yellow "⬇️ Reinstalling nfutils ${remote_version:-}...")"
+  if ! bash "$tmp"; then
     rm -f "$tmp"
-    echo "$(red "❌ Unable to parse version from remote script.")"
+    echo "$(red "❌ Installation failed.")"
     exit 1
   fi
-  if version_newer "$remote_version" "$NF_VERSION"; then
-    echo "$(yellow "📦 New version available:") $remote_version"
-    bash "$tmp"
-    reload_current_shell_rc
-    echo "$(green "✅ Updated to $remote_version")"
-    rm -f "$tmp"
-    exit 0
-  elif version_newer "$NF_VERSION" "$remote_version"; then
-    echo "$(green "✅ You are ahead (local $NF_VERSION, remote $remote_version)")"
-  else
-    echo "$(green "✅ Already up-to-date ($NF_VERSION)")"
-  fi
   rm -f "$tmp"
+  reload_current_shell_rc
+  echo "$(green "✅ nfutils updated to ${remote_version:-latest}")"
+  exit 0
 }
 
 nfutils_version() {
@@ -1178,7 +1150,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-12-08T15:18:46Z-g96fd68b-dirty|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-08T15:23:05Z-gc9dfbaf-dirty|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
