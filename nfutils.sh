@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v-minor"
+NF_VERSION="v02"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -215,15 +215,15 @@ version_key() {
     printf "0%04d%04d%04d" "$major" "$minor" "$patch"
   elif [[ "$ver" =~ ^v([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(Z)?(-g[0-9a-fA-F]+)?(-dirty)?$ ]]; then
     local year="${BASH_REMATCH[1]}"
-    local month="${BASH_REMATCH[2]}"
-    local day="${BASH_REMATCH[3]}"
-    local hour="${BASH_REMATCH[4]}"
-    local minute="${BASH_REMATCH[5]}"
-    local second="${BASH_REMATCH[6]}"
+    local month_dec=$((10#${BASH_REMATCH[2]}))
+    local day_dec=$((10#${BASH_REMATCH[3]}))
+    local hour_dec=$((10#${BASH_REMATCH[4]}))
+    local minute_dec=$((10#${BASH_REMATCH[5]}))
+    local second_dec=$((10#${BASH_REMATCH[6]}))
     local sha="${BASH_REMATCH[8]}"
     local dirty="${BASH_REMATCH[9]}"
     sha="${sha#-g}"
-    printf "1%04d%02d%02d%02d%02d%02d%s%s" "$year" "$month" "$day" "$hour" "$minute" "$second" "${dirty:+d}" "$sha"
+    printf "1%04d%02d%02d%02d%02d%02d%s%s" "$year" "$month_dec" "$day_dec" "$hour_dec" "$minute_dec" "$second_dec" "${dirty:+d}" "$sha"
   else
     printf "9%s" "$ver"
   fi
@@ -357,7 +357,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -eo pipefail
 
-NF_VERSION="v-minor"
+NF_VERSION="v02"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -595,15 +595,15 @@ version_key() {
     printf "0%04d%04d%04d" "$major" "$minor" "$patch"
   elif [[ "$ver" =~ ^v([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(Z)?(-g[0-9a-fA-F]+)?(-dirty)?$ ]]; then
     local year="${BASH_REMATCH[1]}"
-    local month="${BASH_REMATCH[2]}"
-    local day="${BASH_REMATCH[3]}"
-    local hour="${BASH_REMATCH[4]}"
-    local minute="${BASH_REMATCH[5]}"
-    local second="${BASH_REMATCH[6]}"
+    local month_dec=$((10#${BASH_REMATCH[2]}))
+    local day_dec=$((10#${BASH_REMATCH[3]}))
+    local hour_dec=$((10#${BASH_REMATCH[4]}))
+    local minute_dec=$((10#${BASH_REMATCH[5]}))
+    local second_dec=$((10#${BASH_REMATCH[6]}))
     local sha="${BASH_REMATCH[8]}"
     local dirty="${BASH_REMATCH[9]}"
     sha="${sha#-g}"
-    printf "1%04d%02d%02d%02d%02d%02d%s%s" "$year" "$month" "$day" "$hour" "$minute" "$second" "${dirty:+d}" "$sha"
+    printf "1%04d%02d%02d%02d%02d%02d%s%s" "$year" "$month_dec" "$day_dec" "$hour_dec" "$minute_dec" "$second_dec" "${dirty:+d}" "$sha"
   else
     printf "9%s" "$ver"
   fi
@@ -1229,7 +1229,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v-minor|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v02|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
