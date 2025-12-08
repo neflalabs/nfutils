@@ -14,7 +14,7 @@ ZSHRC="$HOME/.zshrc"
 ZSH_COMPLETION_DIR="$HOME/.zsh/completions"
 ZSH_COMPLETION_PATH="$ZSH_COMPLETION_DIR/_nfutils"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
-NF_VERSION="v2025-12-08T15:23:05Z-gc9dfbaf-dirty"
+NF_VERSION="v2025-12-08T15:26:19Z-g324e77b-local"
 
 bold() { echo -e "\033[1m$1\033[0m"; }
 green() { echo -e "\033[32m$1\033[0m"; }
@@ -213,7 +213,7 @@ version_key() {
     minor=${minor:-0}
     patch=${patch:-0}
     printf "0%04d%04d%04d" "$major" "$minor" "$patch"
-  elif [[ "$ver" =~ ^v([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(Z)?(-g[0-9a-fA-F]+)?(-dirty)?$ ]]; then
+  elif [[ "$ver" =~ ^v([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(Z)?(-g[0-9a-fA-F]+)?(-local)?$ ]]; then
     local year="${BASH_REMATCH[1]}"
     local month_dec=$((10#${BASH_REMATCH[2]}))
     local day_dec=$((10#${BASH_REMATCH[3]}))
@@ -311,7 +311,7 @@ cat > "$NF_PATH" <<'EOF'
 #!/usr/bin/env bash
 set -eo pipefail
 
-NF_VERSION="v2025-12-08T15:23:05Z-gc9dfbaf-dirty"
+NF_VERSION="v2025-12-08T15:26:19Z-g324e77b-local"
 NF_REPO_URL="https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh"
 
 BASHRC="$HOME/.bashrc"
@@ -547,7 +547,7 @@ version_key() {
     minor=${minor:-0}
     patch=${patch:-0}
     printf "0%04d%04d%04d" "$major" "$minor" "$patch"
-  elif [[ "$ver" =~ ^v([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(Z)?(-g[0-9a-fA-F]+)?(-dirty)?$ ]]; then
+  elif [[ "$ver" =~ ^v([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(Z)?(-g[0-9a-fA-F]+)?(-local)?$ ]]; then
     local year="${BASH_REMATCH[1]}"
     local month_dec=$((10#${BASH_REMATCH[2]}))
     local day_dec=$((10#${BASH_REMATCH[3]}))
@@ -1150,7 +1150,7 @@ case "$1" in
 esac
 EOF
 tmp_file=$(mktemp)
-sed "s|v2025-12-08T15:23:05Z-gc9dfbaf-dirty|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
+sed "s|v2025-12-08T15:26:19Z-g324e77b-local|$NF_VERSION|g; s|https://raw.githubusercontent.com/neflalabs/nfutils/main/nfutils.sh|$NF_REPO_URL|g" "$NF_PATH" > "$tmp_file"
 mv "$tmp_file" "$NF_PATH"
 
 chmod +x "$NF_PATH"
